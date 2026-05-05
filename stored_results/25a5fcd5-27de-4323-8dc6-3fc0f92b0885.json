@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "result_id": "25a5fcd5-27de-4323-8dc6-3fc0f92b0885",
+  "created_at": "2026-04-30T20:09:48.500586+00:00",
+  "dataset_name": "housing.csv",
+  "question": "What are the minimum, maximum, and median values of median house value?",
+  "resolved_question": "What are the minimum, maximum, and median values of median house value?",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\n\ndf = pd.read_csv(csv_path)\ncol = \"median_house_value\"\n\nresult = {\n    \"minimum\": float(df[col].min()),\n    \"maximum\": float(df[col].max()),\n    \"median\": float(df[col].median())\n}",
+  "execution_result": {
+    "minimum": 14999.0,
+    "maximum": 500001.0,
+    "median": 178750.0
+  },
+  "evaluation": "PASS",
+  "final_answer": "The median house value ranges from **14,999** at the low end to **500,001** at the high end, with a median of **178,750**.",
+  "visualization_decision": {
+    "needed": false,
+    "chart_type": "none",
+    "reason": "The response reports three summary statistics for a single variable, which is clear in text and does not require a visualization unless explicitly requested.",
+    "data_focus": "Minimum, maximum, and median of median house value"
+  },
+  "visualization_generated": false,
+  "visualization_result": "",
+  "visualization_html": "",
+  "visualization_error": ""
+}

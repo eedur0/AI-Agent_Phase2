@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "result_id": "e18f4cff-f5c8-4d89-9a9f-cc791fc8fd66",
+  "created_at": "2026-05-01T01:26:02.414564+00:00",
+  "dataset_name": "housing.csv",
+  "question": "Which geographic areas (based on latitude and longitude ranges) have the highest average house prices?",
+  "resolved_question": "Which geographic areas (based on latitude and longitude ranges) have the highest average house prices?",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv(csv_path)\n\n# Create geographic bins based on latitude and longitude ranges\nlat_bins = np.arange(np.floor(df[\"latitude\"].min()), np.ceil(df[\"latitude\"].max()) + 0.5, 0.5)\nlon_bins = np.arange(np.floor(df[\"longitude\"].min()), np.ceil(df[\"longitude\"].max()) + 0.5, 0.5)\n\ndf[\"latitude_range\"] = pd.cut(df[\"latitude\"], bins=lat_bins, include_lowest=True)\ndf[\"longitude_range\"] = pd.cut(df[\"longitude\"], bins=lon_bins, include_lowest=True)\n\ngrouped = (\n    df.groupby([\"latitude_range\", \"longitude_range\"], observed=False)[\"median_house_value\"]\n    .agg([\"mean\", \"count\"])\n    .reset_index()\n    .sort_values([\"mean\", \"count\"], ascending=[False, False])\n)\n\ntop_groups = grouped.head(10).copy()\n\ndef interval_to_range(interval):\n    if pd.isna(interval):\n        return None\n    return {\n        \"min\": float(interval.left),\n        \"max\": float(interval.right)\n    }\n\nresult = [\n    {\n        \"latitude_range\": interval_to_range(row[\"latitude_range\"]),\n        \"longitude_range\": interval_to_range(row[\"longitude_range\"]),\n        \"average_house_price\": float(row[\"mean\"]),\n        \"num_records\": int(row[\"count\"])\n    }\n    for _, row in top_groups.iterrows()\n]",
+  "execution_result": [
+    {
+      "latitude_range": {
+        "min": 33.5,
+        "max": 34.0
+      },
+      "longitude_range": {
+        "min": -119.0,
+        "max": -118.5
+      },
+      "average_house_price": 425000.0,
+      "num_records": 1
+    },
+    {
+      "latitude_range": {
+        "min": 33.0,
+        "max": 33.5
+      },
+      "longitude_range": {
+        "min": -118.5,
+        "max": -118.0
+      },
+      "average_house_price": 414700.0,
+      "num_records": 1
+    },
+    {
+      "latitude_range": {
+        "min": 37.0,
+        "max": 37.5
+      },
+      "longitude_range": {
+        "min": -122.5,
+        "max": -122.0
+      },
+      "average_house_price": 372460.75889328064,
+      "num_records": 253
+    },
+    {
+      "latitude_range": {
+        "min": 36.0,
+        "max": 36.5
+      },
+      "longitude_range": {
+        "min": -122.0,
+        "max": -121.5
+      },
+      "average_house_price": 351766.8333333333,
+      "num_records": 6
+    },
+    {
+      "latitude_range": {
+        "min": 37.5,
+        "max": 38.0
+      },
+      "longitude_range": {
+        "min": -123.0,
+        "max": -122.5
+      },
+      "average_house_price": 346508.43055555556,
+      "num_records": 72
+    },
+    {
+      "latitude_range": {
+        "min": 33.0,
+        "max": 33.5
+      },
+      "longitude_range": {
+        "min": -118.0,
+        "max": -117.5
+      },
+      "average_house_price": 340476.0689655172,
+      "num_records": 29
+    },
+    {
+      "latitude_range": {
+        "min": 34.0,
+        "max": 34.5
+      },
+      "longitude_range": {
+        "min": -120.0,
+        "max": -119.5
+      },
+      "average_house_price": 326934.2159090909,
+      "num_records": 88
+    },
+    {
+      "latitude_range": {
+        "min": 34.0,
+        "max": 34.5
+      },
+      "longitude_range": {
+        "min": -119.0,
+        "max": -118.5
+      },
+      "average_house_price": 304069.77327935223,
+      "num_records": 247
+    },
+    {
+      "latitude_range": {
+        "min": 37.5,
+        "max": 38.0
+      },
+      "longitude_range": {
+        "min": -122.5,
+        "max": -122.0
+      },
+      "average_house_price": 263834.3316880553,
+      "num_records": 1013
+    },
+    {
+      "latitude_range": {
+        "min": 37.0,
+        "max": 37.5
+      },
+      "longitude_range": {
+        "min": -122.0,
+        "max": -121.5
+      },
+      "average_house_price": 262876.41411042947,
+      "num_records": 326
+    }
+  ],
+  "evaluation": "PASS",
+  "final_answer": "The highest average house prices appear in these latitude/longitude bins:\n\n- \\textbf{Lat 33.5–34.0, Lon -119.0 to -118.5}: average price \\textbf{\\$425,000} (1 record)\n- Lat 33.0–33.5, Lon -118.5 to -118.0: average price \\$414,700 (1 record)\n- Lat 37.0–37.5, Lon -122.5 to -122.0: average price \\$372,461 (253 records)\n- Lat 36.0–36.5, Lon -122.0 to -121.5: average price \\$351,767 (6 records)\n- Lat 37.5–38.0, Lon -123.0 to -122.5: average price \\$346,508 (72 records)\n\nA useful caveat: the top two areas each have only 1 record, so the most reliable high-price cluster is likely around \\textbf{Lat 37.0–37.5 and Lon -122.5 to -122.0}, with an average price of about \\textbf{\\$372,461} across 253 records.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "heatmap",
+    "reason": "The question asks about geographic areas defined by latitude/longitude ranges, and a heatmap would make the spatial pattern of high average house prices much clearer than text alone while also helping distinguish isolated high-price bins from broader clusters.",
+    "data_focus": "Latitude/longitude bins colored by average house price, ideally annotated or filtered by number of records to show reliability of each area."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Heatmap of average house prices by geographic bin; the highest well-supported area is latitude 37.0 to 37.5 and longitude -122.5 to -122.0 with an average price of $372,461 across 253 records.",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"0f2b2a29-a55c-44b8-9206-afef720a8904\" class=\"plotly-graph-div\" style=\"height:100%; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"0f2b2a29-a55c-44b8-9206-afef720a8904\")) {                    Plotly.newPlot(                        \"0f2b2a29-a55c-44b8-9206-afef720a8904\",                        [{\"coloraxis\":\"coloraxis\",\"histfunc\":\"avg\",\"hovertemplate\":\"Latitude range: %{customdata[2]}\\u003cbr\\u003eLongitude range: %{customdata[3]}\\u003cbr\\u003eAverage house price: %{customdata[0]}\\u003cbr\\u003eNumber of records: %{customdata[1]}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"name\":\"\",\"texttemplate\":\"%{z:.0f}\",\"x\":[\"-119.0 to -118.5\",\"-118.5 to -118.0\",\"-122.5 to -122.0\",\"-122.0 to -121.5\",\"-123.0 to -122.5\",\"-118.0 to -117.5\",\"-120.0 to -119.5\",\"-119.0 to -118.5\",\"-122.5 to -122.0\",\"-122.0 to -121.5\"],\"xaxis\":\"x\",\"xbingroup\":\"x\",\"y\":[\"33.5 to 34.0\",\"33.0 to 33.5\",\"37.0 to 37.5\",\"36.0 to 36.5\",\"37.5 to 38.0\",\"33.0 to 33.5\",\"34.0 to 34.5\",\"34.0 to 34.5\",\"37.5 to 38.0\",\"37.0 to 37.5\"],\"yaxis\":\"y\",\"ybingroup\":\"y\",\"z\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAKDwGUEAAAAAsE8ZQfZRGwmzuxZBVVVVVVt4FUE5juO4MSYVQYTlnkbwxxRB0UUX3Vj0E0HiitYXF48SQZgIplNpGhBBfpAMqHELEEE=\"},\"type\":\"histogram2d\",\"customdata\":[[\"$425,000\",\"1\",\"33.5 to 34.0\",\"-119.0 to -118.5\"],[\"$414,700\",\"1\",\"33.0 to 33.5\",\"-118.5 to -118.0\"],[\"$372,461\",\"253\",\"37.0 to 37.5\",\"-122.5 to -122.0\"],[\"$351,767\",\"6\",\"36.0 to 36.5\",\"-122.0 to -121.5\"],[\"$346,508\",\"72\",\"37.5 to 38.0\",\"-123.0 to -122.5\"],[\"$340,476\",\"29\",\"33.0 to 33.5\",\"-118.0 to -117.5\"],[\"$326,934\",\"88\",\"34.0 to 34.5\",\"-120.0 to -119.5\"],[\"$304,070\",\"247\",\"34.0 to 34.5\",\"-119.0 to -118.5\"],[\"$263,834\",\"1,013\",\"37.5 to 38.0\",\"-122.5 to -122.0\"],[\"$262,876\",\"326\",\"37.0 to 37.5\",\"-122.0 to -121.5\"]]}],                        {\"template\":{\"data\":{\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"white\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"white\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"#C8D4E3\",\"linecolor\":\"#C8D4E3\",\"minorgridcolor\":\"#C8D4E3\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"#C8D4E3\",\"linecolor\":\"#C8D4E3\",\"minorgridcolor\":\"#C8D4E3\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"choropleth\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"type\":\"choropleth\"}],\"contourcarpet\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"type\":\"contourcarpet\"}],\"contour\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"contour\"}],\"heatmap\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"heatmap\"}],\"histogram2dcontour\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"histogram2dcontour\"}],\"histogram2d\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"histogram2d\"}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"mesh3d\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"type\":\"mesh3d\"}],\"parcoords\":[{\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"parcoords\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}],\"scatter3d\":[{\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatter3d\"}],\"scattercarpet\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattercarpet\"}],\"scattergeo\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattergeo\"}],\"scattergl\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattergl\"}],\"scattermapbox\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattermapbox\"}],\"scattermap\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattermap\"}],\"scatterpolargl\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatterpolargl\"}],\"scatterpolar\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatterpolar\"}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"scatterternary\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatterternary\"}],\"surface\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"surface\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}]},\"layout\":{\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"autotypenumbers\":\"strict\",\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]],\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]},\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"geo\":{\"bgcolor\":\"white\",\"lakecolor\":\"white\",\"landcolor\":\"white\",\"showlakes\":true,\"showland\":true,\"subunitcolor\":\"#C8D4E3\"},\"hoverlabel\":{\"align\":\"left\"},\"hovermode\":\"closest\",\"mapbox\":{\"style\":\"light\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"white\",\"polar\":{\"angularaxis\":{\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\"},\"bgcolor\":\"white\",\"radialaxis\":{\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\"}},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"white\",\"gridcolor\":\"#DFE8F3\",\"gridwidth\":2,\"linecolor\":\"#EBF0F8\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"#EBF0F8\"},\"yaxis\":{\"backgroundcolor\":\"white\",\"gridcolor\":\"#DFE8F3\",\"gridwidth\":2,\"linecolor\":\"#EBF0F8\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"#EBF0F8\"},\"zaxis\":{\"backgroundcolor\":\"white\",\"gridcolor\":\"#DFE8F3\",\"gridwidth\":2,\"linecolor\":\"#EBF0F8\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"#EBF0F8\"}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"ternary\":{\"aaxis\":{\"gridcolor\":\"#DFE8F3\",\"linecolor\":\"#A2B1C6\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"#DFE8F3\",\"linecolor\":\"#A2B1C6\",\"ticks\":\"\"},\"bgcolor\":\"white\",\"caxis\":{\"gridcolor\":\"#DFE8F3\",\"linecolor\":\"#A2B1C6\",\"ticks\":\"\"}},\"title\":{\"x\":0.05},\"xaxis\":{\"automargin\":true,\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"#EBF0F8\",\"zerolinewidth\":2},\"yaxis\":{\"automargin\":true,\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"#EBF0F8\",\"zerolinewidth\":2}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Longitude range\"},\"categoryorder\":\"array\",\"categoryarray\":[\"-123.0 to -122.5\",\"-122.5 to -122.0\",\"-122.0 to -121.5\",\"-120.0 to -119.5\",\"-119.0 to -118.5\",\"-118.5 to -118.0\",\"-118.0 to -117.5\"]},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Latitude range\"},\"categoryorder\":\"array\",\"categoryarray\":[\"33.0 to 33.5\",\"33.5 to 34.0\",\"34.0 to 34.5\",\"36.0 to 36.5\",\"37.0 to 37.5\",\"37.5 to 38.0\"]},\"coloraxis\":{\"colorbar\":{\"title\":{\"text\":\"Avg price ($)\"}},\"colorscale\":[[0.0,\"rgb(255,255,204)\"],[0.125,\"rgb(255,237,160)\"],[0.25,\"rgb(254,217,118)\"],[0.375,\"rgb(254,178,76)\"],[0.5,\"rgb(253,141,60)\"],[0.625,\"rgb(252,78,42)\"],[0.75,\"rgb(227,26,28)\"],[0.875,\"rgb(189,0,38)\"],[1.0,\"rgb(128,0,38)\"]]},\"legend\":{\"tracegroupgap\":0},\"title\":{\"text\":\"Average House Prices by Latitude and Longitude Range\"},\"margin\":{\"l\":60,\"r\":30,\"t\":70,\"b\":60}},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

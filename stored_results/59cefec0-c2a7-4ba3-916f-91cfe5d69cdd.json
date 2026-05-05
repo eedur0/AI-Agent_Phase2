@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "result_id": "59cefec0-c2a7-4ba3-916f-91cfe5d69cdd",
+  "created_at": "2026-05-01T03:59:46.778433+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "Identify the top 5 student groups with the highest academic performance and explain the key factors contributing to their success.",
+  "resolved_question": "Identify the top 5 student groups with the highest academic performance and explain the key factors contributing to their success.",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project/datasets/AI_Student_Life_Pakistan_2026.csv')\n\nimpact_score_map = {\n    'Declined': 0,\n    'Slight Decline': 1,\n    'No Change': 2,\n    'Improved': 3,\n    'Significantly Improved': 4\n}\nsatisfaction_score_map = {\n    'Low': 1,\n    'Medium': 2,\n    'High': 3\n}\n\ndf['impact_score'] = df['Impact_on_Grades'].map(impact_score_map)\ndf['satisfaction_score'] = df['Satisfaction_Level'].map(satisfaction_score_map)\n\ncandidate_groupings = {\n    'Education_Level': ['Education_Level'],\n    'Purpose': ['Purpose'],\n    'AI_Tool_Used': ['AI_Tool_Used'],\n    'City': ['City'],\n    'Gender': ['Gender'],\n    'Education_Level + Purpose': ['Education_Level', 'Purpose'],\n    'Education_Level + AI_Tool_Used': ['Education_Level', 'AI_Tool_Used'],\n    'Purpose + AI_Tool_Used': ['Purpose', 'AI_Tool_Used'],\n    'Education_Level + Satisfaction_Level': ['Education_Level', 'Satisfaction_Level']\n}\n\ngroup_results = []\n\nfor grouping_name, cols in candidate_groupings.items():\n    grouped = (\n        df.groupby(cols, dropna=False)\n        .agg(\n            student_count=('Student_ID', 'count'),\n            avg_impact_score=('impact_score', 'mean'),\n            improved_rate=('Impact_on_Grades', lambda x: (x.isin(['Improved', 'Significantly Improved'])).mean()),\n            avg_satisfaction_score=('satisfaction_score', 'mean'),\n            avg_daily_usage_hours=('Daily_Usage_Hours', 'mean'),\n            avg_age=('Age', 'mean')\n        )\n        .reset_index()\n    )\n\n    grouped = grouped[grouped['student_count'] >= 3].copy()\n    if grouped.empty:\n        continue\n\n    grouped['performance_score'] = (\n        grouped['avg_impact_score'] * 0.6 +\n        grouped['improved_rate'] * 4.0 * 0.3 +\n        grouped['avg_satisfaction_score'] * 0.1\n    )\n\n    for _, row in grouped.iterrows():\n        group_label_parts = [f\"{col}={row[col]}\" for col in cols]\n        impact_distribution = (\n            df.merge(\n                pd.DataFrame([row[cols].to_dict()]),\n                on=cols,\n                how='inner'\n            )['Impact_on_Grades']\n            .value_counts(normalize=True)\n            .to_dict()\n        )\n        satisfaction_distribution = (\n            df.merge(\n                pd.DataFrame([row[cols].to_dict()]),\n                on=cols,\n                how='inner'\n            )['Satisfaction_Level']\n            .value_counts(normalize=True)\n            .to_dict()\n        )\n        group_results.append({\n            'grouping_type': grouping_name,\n            'group': \", \".join(group_label_parts),\n            'student_count': int(row['student_count']),\n            'performance_score': float(round(row['performance_score'], 4)),\n            'avg_impact_score': float(round(row['avg_impact_score'], 4)),\n            'improved_rate': float(round(row['improved_rate'], 4)),\n            'avg_satisfaction_score': float(round(row['avg_satisfaction_score'], 4)),\n            'avg_daily_usage_hours': float(round(row['avg_daily_usage_hours'], 4)),\n            'avg_age': float(round(row['avg_age'], 2)),\n            'impact_distribution': {k: float(round(v, 4)) for k, v in impact_distribution.items()},\n            'satisfaction_distribution': {k: float(round(v, 4)) for k, v in satisfaction_distribution.items()}\n        })\n\ntop5 = sorted(\n    group_results,\n    key=lambda x: (x['performance_score'], x['student_count']),\n    reverse=True\n)[:5]\n\nfor item in top5:\n    reasons = []\n    if item['avg_impact_score'] >= 3.0:\n        reasons.append('very strong positive grade impact')\n    elif item['avg_impact_score'] >= 2.5:\n        reasons.append('above-average grade improvement')\n\n    if item['improved_rate'] >= 0.8:\n        reasons.append('a very high share of students reporting improved grades')\n    elif item['improved_rate'] >= 0.6:\n        reasons.append('a majority of students reporting improved grades')\n\n    if item['avg_satisfaction_score'] >= 2.5:\n        reasons.append('high satisfaction with AI usage')\n    elif item['avg_satisfaction_score'] >= 2.0:\n        reasons.append('moderate-to-high satisfaction')\n\n    usage = item['avg_daily_usage_hours']\n    if 1.5 <= usage <= 4.5:\n        reasons.append('balanced daily AI usage')\n    elif usage > 4.5:\n        reasons.append('heavy AI engagement')\n\n    item['key_factors'] = reasons\n\nresult = top5",
+  "execution_result": [
+    {
+      "grouping_type": "Purpose + AI_Tool_Used",
+      "group": "Purpose=Learning, AI_Tool_Used=ChatGPT",
+      "student_count": 3,
+      "performance_score": 3.2667,
+      "avg_impact_score": 3.0,
+      "improved_rate": 1.0,
+      "avg_satisfaction_score": 2.6667,
+      "avg_daily_usage_hours": 3.2667,
+      "avg_age": 20.67,
+      "impact_distribution": {
+        "Improved": 1.0
+      },
+      "satisfaction_distribution": {
+        "High": 0.6667,
+        "Medium": 0.3333
+      },
+      "key_factors": [
+        "very strong positive grade impact",
+        "a very high share of students reporting improved grades",
+        "high satisfaction with AI usage",
+        "balanced daily AI usage"
+      ]
+    },
+    {
+      "grouping_type": "Purpose + AI_Tool_Used",
+      "group": "Purpose=Coding, AI_Tool_Used=ChatGPT",
+      "student_count": 6,
+      "performance_score": 3.2,
+      "avg_impact_score": 3.0,
+      "improved_rate": 1.0,
+      "avg_satisfaction_score": 2.0,
+      "avg_daily_usage_hours": 4.0833,
+      "avg_age": 19.33,
+      "impact_distribution": {
+        "Improved": 1.0
+      },
+      "satisfaction_distribution": {
+        "Medium": 0.3333,
+        "Low": 0.3333,
+        "High": 0.3333
+      },
+      "key_factors": [
+        "very strong positive grade impact",
+        "a very high share of students reporting improved grades",
+        "moderate-to-high satisfaction",
+        "balanced daily AI usage"
+      ]
+    },
+    {
+      "grouping_type": "Purpose + AI_Tool_Used",
+      "group": "Purpose=Research, AI_Tool_Used=Notion AI",
+      "student_count": 3,
+      "performance_score": 3.1667,
+      "avg_impact_score": 3.0,
+      "improved_rate": 1.0,
+      "avg_satisfaction_score": 1.6667,
+      "avg_daily_usage_hours": 3.2667,
+      "avg_age": 20.67,
+      "impact_distribution": {
+        "Improved": 1.0
+      },
+      "satisfaction_distribution": {
+        "Medium": 0.6667,
+        "Low": 0.3333
+      },
+      "key_factors": [
+        "very strong positive grade impact",
+        "a very high share of students reporting improved grades",
+        "balanced daily AI usage"
+      ]
+    },
+    {
+      "grouping_type": "Education_Level + Purpose",
+      "group": "Education_Level=University, Purpose=Learning",
+      "student_count": 7,
+      "performance_score": 2.9,
+      "avg_impact_score": 2.7143,
+      "improved_rate": 0.8571,
+      "avg_satisfaction_score": 2.4286,
+      "avg_daily_usage_hours": 2.2857,
+      "avg_age": 19.43,
+      "impact_distribution": {
+        "Improved": 0.8571,
+        "Slight Decline": 0.1429
+      },
+      "satisfaction_distribution": {
+        "Medium": 0.5714,
+        "High": 0.4286
+      },
+      "key_factors": [
+        "above-average grade improvement",
+        "a very high share of students reporting improved grades",
+        "moderate-to-high satisfaction",
+        "balanced daily AI usage"
+      ]
+    },
+    {
+      "grouping_type": "Education_Level + AI_Tool_Used",
+      "group": "Education_Level=College, AI_Tool_Used=ChatGPT",
+      "student_count": 5,
+      "performance_score": 2.68,
+      "avg_impact_score": 2.6,
+      "improved_rate": 0.8,
+      "avg_satisfaction_score": 1.6,
+      "avg_daily_usage_hours": 3.94,
+      "avg_age": 19.2,
+      "impact_distribution": {
+        "Improved": 0.8,
+        "Slight Decline": 0.2
+      },
+      "satisfaction_distribution": {
+        "Low": 0.6,
+        "High": 0.2,
+        "Medium": 0.2
+      },
+      "key_factors": [
+        "above-average grade improvement",
+        "a very high share of students reporting improved grades",
+        "balanced daily AI usage"
+      ]
+    }
+  ],
+  "evaluation": "PASS",
+  "final_answer": "The top 5 student groups with the highest academic performance are:\n\n1. Purpose=Learning, AI_Tool_Used=ChatGPT\n- Performance score: 3.27\n- Student count: 3\n- Why they performed well:\n  - 100% reported improved grades\n  - Strong positive academic impact overall\n  - High satisfaction with AI use\n  - Balanced daily usage at about 3.27 hours/day\n\n2. Purpose=Coding, AI_Tool_Used=ChatGPT\n- Performance score: 3.20\n- Student count: 6\n- Why they performed well:\n  - 100% reported improved grades\n  - Very strong positive grade impact\n  - Moderate-to-high satisfaction overall\n  - Consistent usage at about 4.08 hours/day\n\n3. Purpose=Research, AI_Tool_Used=Notion AI\n- Performance score: 3.17\n- Student count: 3\n- Why they performed well:\n  - 100% reported improved grades\n  - Strong positive academic impact\n  - Balanced AI usage at about 3.27 hours/day\n  - Satisfaction was more mixed, so performance seems driven mainly by direct academic usefulness\n\n4. Education_Level=University, Purpose=Learning\n- Performance score: 2.90\n- Student count: 7\n- Why they performed well:\n  - 85.7% reported improved grades\n  - Above-average academic improvement\n  - Moderate-to-high satisfaction\n  - Lower but steady usage at about 2.29 hours/day, suggesting efficient use\n\n5. Education_Level=College, AI_Tool_Used=ChatGPT\n- Performance score: 2.68\n- Student count: 5\n- Why they performed well:\n  - 80% reported improved grades\n  - Above-average grade improvement\n  - Balanced usage at about 3.94 hours/day\n  - Satisfaction was relatively low, so results may come more from practical effectiveness than user experience\n\nKey overall success factors across the top groups:\n- Very high improved-rate: The strongest groups had 80% to 100% of students reporting better grades.\n- Positive academic impact: High average impact scores were the clearest driver of performance.\n- Balanced AI usage: Most top groups used AI around 2 to 4 hours per day, suggesting regular but not excessive use.\n- ChatGPT appears often: 3 of the top 5 groups involved ChatGPT, especially for learning and coding.\n- Purpose matters: Learning, coding, and research were the most successful use cases.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "bar",
+    "reason": "The answer ranks five groups by academic performance and compares contributing factors like improved-rate, satisfaction, and usage. A bar chart would make the ranking and score differences easier to see at a glance.",
+    "data_focus": "Top 5 student groups on the x-axis with performance_score as the main bar value; optionally annotate student_count, improved_rate, and avg_daily_usage_hours for context."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Bar chart of the top 5 student groups by performance score; leading group is Purpose=Learning, AI_Tool_Used=ChatGPT (3.27), supported by 100% improved-rate, 3.27 avg daily usage hours, 2.67 satisfaction",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"44917380-d847-41a8-9226-3ccf1d2cac78\" class=\"plotly-graph-div\" style=\"height:620px; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"44917380-d847-41a8-9226-3ccf1d2cac78\")) {                    Plotly.newPlot(                        \"44917380-d847-41a8-9226-3ccf1d2cac78\",                        [{\"hoverinfo\":\"text\",\"hovertext\":[\"\\u003cb\\u003ePurpose=Learning, AI_Tool_Used=ChatGPT\\u003c\\u002fb\\u003e\\u003cbr\\u003ePerformance score: 3.27\\u003cbr\\u003eStudents: 3\\u003cbr\\u003eImproved rate: 100%\\u003cbr\\u003eAvg satisfaction: 2.67\\u003cbr\\u003eAvg daily AI usage: 3.27 hrs\\u003cbr\\u003eKey factors: very strong positive grade impact; a very high share of students reporting improved grades; high satisfaction with AI usage; balanced daily AI usage\",\"\\u003cb\\u003ePurpose=Coding, AI_Tool_Used=ChatGPT\\u003c\\u002fb\\u003e\\u003cbr\\u003ePerformance score: 3.20\\u003cbr\\u003eStudents: 6\\u003cbr\\u003eImproved rate: 100%\\u003cbr\\u003eAvg satisfaction: 2.00\\u003cbr\\u003eAvg daily AI usage: 4.08 hrs\\u003cbr\\u003eKey factors: very strong positive grade impact; a very high share of students reporting improved grades; moderate-to-high satisfaction; balanced daily AI usage\",\"\\u003cb\\u003ePurpose=Research, AI_Tool_Used=Notion AI\\u003c\\u002fb\\u003e\\u003cbr\\u003ePerformance score: 3.17\\u003cbr\\u003eStudents: 3\\u003cbr\\u003eImproved rate: 100%\\u003cbr\\u003eAvg satisfaction: 1.67\\u003cbr\\u003eAvg daily AI usage: 3.27 hrs\\u003cbr\\u003eKey factors: very strong positive grade impact; a very high share of students reporting improved grades; balanced daily AI usage\",\"\\u003cb\\u003eEducation_Level=University, Purpose=Learning\\u003c\\u002fb\\u003e\\u003cbr\\u003ePerformance score: 2.90\\u003cbr\\u003eStudents: 7\\u003cbr\\u003eImproved rate: 86%\\u003cbr\\u003eAvg satisfaction: 2.43\\u003cbr\\u003eAvg daily AI usage: 2.29 hrs\\u003cbr\\u003eKey factors: above-average grade improvement; a very high share of students reporting improved grades; moderate-to-high satisfaction; balanced daily AI usage\",\"\\u003cb\\u003eEducation_Level=College, AI_Tool_Used=ChatGPT\\u003c\\u002fb\\u003e\\u003cbr\\u003ePerformance score: 2.68\\u003cbr\\u003eStudents: 5\\u003cbr\\u003eImproved rate: 80%\\u003cbr\\u003eAvg satisfaction: 1.60\\u003cbr\\u003eAvg daily AI usage: 3.94 hrs\\u003cbr\\u003eKey factors: above-average grade improvement; a very high share of students reporting improved grades; balanced daily AI usage\"],\"marker\":{\"color\":\"#4C78A8\"},\"name\":\"Performance Score\",\"text\":[\"3.27\",\"3.20\",\"3.17\",\"2.90\",\"2.68\"],\"textposition\":\"outside\",\"x\":[\"Purpose=Learning,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Coding,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Research,\\u003cbr\\u003eAI_Tool_Used=Notion AI\",\"Education_Level=University,\\u003cbr\\u003ePurpose=Learning\",\"Education_Level=College,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\"],\"y\":{\"dtype\":\"f8\",\"bdata\":\"4L4OnDMiCkCamZmZmZkJQBPyQc9mVQlAMzMzMzMzB0BxPQrXo3AFQA==\"},\"type\":\"bar\"},{\"customdata\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAAAA8D8AAAAAAADwPwAAAAAAAPA\\u002f6Nms+lxt6z+amZmZmZnpPw==\",\"shape\":\"5, 1\"},\"hovertemplate\":\"\\u003cb\\u003e%{x}\\u003c\\u002fb\\u003e\\u003cbr\\u003eImproved rate: %{text}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"marker\":{\"color\":\"#F58518\",\"size\":12,\"symbol\":\"diamond\"},\"mode\":\"markers+text\",\"name\":\"Improved Rate (scaled)\",\"text\":[\"100%\",\"100%\",\"100%\",\"86%\",\"80%\"],\"textposition\":\"top center\",\"x\":[\"Purpose=Learning,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Coding,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Research,\\u003cbr\\u003eAI_Tool_Used=Notion AI\",\"Education_Level=University,\\u003cbr\\u003ePurpose=Learning\",\"Education_Level=College,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\"],\"y\":{\"dtype\":\"f8\",\"bdata\":\"4L4OnDMiCkDgvg6cMyIKQOC+DpwzIgpA8MCE+itmBkCAZaVJKegEQA==\"},\"type\":\"scatter\"}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"margin\":{\"t\":120,\"b\":120,\"l\":90,\"r\":90},\"legend\":{\"orientation\":\"h\",\"yanchor\":\"top\",\"y\":-0.22,\"xanchor\":\"center\",\"x\":0.5},\"title\":{\"text\":\"Top 5 Student Groups by Academic Performance\"},\"xaxis\":{\"title\":{\"text\":\"Student Group\"},\"tickangle\":-20},\"yaxis\":{\"title\":{\"text\":\"Performance Score\"},\"rangemode\":\"tozero\"},\"height\":620,\"bargap\":0.35,\"bargroupgap\":0.15},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

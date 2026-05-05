@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "result_id": "25a8acb6-6dc0-4c91-970a-b5567affa6ad",
+  "created_at": "2026-05-01T04:00:47.808388+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "how about only showcasing the top 3 now?",
+  "resolved_question": "From the previously identified top 5 student groups with the highest academic performance, showcase only the top 3 groups instead.",
+  "uses_prior_context": true,
+  "follow_up_context": "The previous turn identified and ranked the top 5 student groups by academic performance. The top 3 were: 1) Purpose=Learning, AI_Tool_Used=ChatGPT (performance_score 3.2667), 2) Purpose=Coding, AI_Tool_Used=ChatGPT (performance_score 3.2), and 3) Purpose=Research, AI_Tool_Used=Notion AI (performance_score 3.1667).",
+  "generated_code": "data = stored_result if isinstance(stored_result, list) else prior_turn.get(\"execution_result\")\n\nif not isinstance(data, list) or len(data) < 3:\n    result = \"Missing the ranked top-group results needed to extract the top 3.\"\nelse:\n    top3 = sorted(\n        [item for item in data if isinstance(item, dict)],\n        key=lambda x: x.get(\"performance_score\", float(\"-inf\")),\n        reverse=True\n    )[:3]\n    \n    result = []\n    for rank, item in enumerate(top3, start=1):\n        result.append({\n            \"rank\": rank,\n            \"grouping_type\": item.get(\"grouping_type\"),\n            \"group\": item.get(\"group\"),\n            \"student_count\": item.get(\"student_count\"),\n            \"performance_score\": item.get(\"performance_score\"),\n            \"avg_impact_score\": item.get(\"avg_impact_score\"),\n            \"improved_rate\": item.get(\"improved_rate\"),\n            \"avg_satisfaction_score\": item.get(\"avg_satisfaction_score\"),\n            \"avg_daily_usage_hours\": item.get(\"avg_daily_usage_hours\"),\n            \"avg_age\": item.get(\"avg_age\"),\n            \"impact_distribution\": item.get(\"impact_distribution\"),\n            \"satisfaction_distribution\": item.get(\"satisfaction_distribution\"),\n            \"key_factors\": item.get(\"key_factors\"),\n        })",
+  "execution_result": [
+    {
+      "rank": 1,
+      "grouping_type": "Purpose + AI_Tool_Used",
+      "group": "Purpose=Learning, AI_Tool_Used=ChatGPT",
+      "student_count": 3,
+      "performance_score": 3.2667,
+      "avg_impact_score": 3.0,
+      "improved_rate": 1.0,
+      "avg_satisfaction_score": 2.6667,
+      "avg_daily_usage_hours": 3.2667,
+      "avg_age": 20.67,
+      "impact_distribution": {
+        "Improved": 1.0
+      },
+      "satisfaction_distribution": {
+        "High": 0.6667,
+        "Medium": 0.3333
+      },
+      "key_factors": [
+        "very strong positive grade impact",
+        "a very high share of students reporting improved grades",
+        "high satisfaction with AI usage",
+        "balanced daily AI usage"
+      ]
+    },
+    {
+      "rank": 2,
+      "grouping_type": "Purpose + AI_Tool_Used",
+      "group": "Purpose=Coding, AI_Tool_Used=ChatGPT",
+      "student_count": 6,
+      "performance_score": 3.2,
+      "avg_impact_score": 3.0,
+      "improved_rate": 1.0,
+      "avg_satisfaction_score": 2.0,
+      "avg_daily_usage_hours": 4.0833,
+      "avg_age": 19.33,
+      "impact_distribution": {
+        "Improved": 1.0
+      },
+      "satisfaction_distribution": {
+        "Medium": 0.3333,
+        "Low": 0.3333,
+        "High": 0.3333
+      },
+      "key_factors": [
+        "very strong positive grade impact",
+        "a very high share of students reporting improved grades",
+        "moderate-to-high satisfaction",
+        "balanced daily AI usage"
+      ]
+    },
+    {
+      "rank": 3,
+      "grouping_type": "Purpose + AI_Tool_Used",
+      "group": "Purpose=Research, AI_Tool_Used=Notion AI",
+      "student_count": 3,
+      "performance_score": 3.1667,
+      "avg_impact_score": 3.0,
+      "improved_rate": 1.0,
+      "avg_satisfaction_score": 1.6667,
+      "avg_daily_usage_hours": 3.2667,
+      "avg_age": 20.67,
+      "impact_distribution": {
+        "Improved": 1.0
+      },
+      "satisfaction_distribution": {
+        "Medium": 0.6667,
+        "Low": 0.3333
+      },
+      "key_factors": [
+        "very strong positive grade impact",
+        "a very high share of students reporting improved grades",
+        "balanced daily AI usage"
+      ]
+    }
+  ],
+  "evaluation": "PASS",
+  "final_answer": "Here are the top 3 student groups with the highest academic performance:\n\n1. Purpose=Learning, AI_Tool_Used=ChatGPT\n   - Performance score: 3.2667\n   - Student count: 3\n\n2. Purpose=Coding, AI_Tool_Used=ChatGPT\n   - Performance score: 3.2\n   - Student count: 6\n\n3. Purpose=Research, AI_Tool_Used=Notion AI\n   - Performance score: 3.1667\n   - Student count: 3\n\nAll three groups had a 100% improved rate in grades.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "bar",
+    "reason": "A bar chart would make the ranking and small differences in performance scores among the top 3 groups easier to compare at a glance.",
+    "data_focus": "Top 3 student groups by performance score, with group names on the x-axis and performance score on the y-axis; optionally annotate student count and 100% improved rate."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Bar chart of the top 3 student groups by academic performance, annotated with improved rate.",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"1aab72b2-28fa-4fef-9a2d-e3afdd87032e\" class=\"plotly-graph-div\" style=\"height:620px; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"1aab72b2-28fa-4fef-9a2d-e3afdd87032e\")) {                    Plotly.newPlot(                        \"1aab72b2-28fa-4fef-9a2d-e3afdd87032e\",                        [{\"hoverinfo\":\"text\",\"hovertext\":[\"\\u003cb\\u003ePurpose=Learning, AI_Tool_Used=ChatGPT\\u003c\\u002fb\\u003e\\u003cbr\\u003eRank: 1\\u003cbr\\u003ePerformance score: 3.27\\u003cbr\\u003eStudents: 3\\u003cbr\\u003eImproved rate: 100%\\u003cbr\\u003eAvg daily AI usage: 3.27 hrs\",\"\\u003cb\\u003ePurpose=Coding, AI_Tool_Used=ChatGPT\\u003c\\u002fb\\u003e\\u003cbr\\u003eRank: 2\\u003cbr\\u003ePerformance score: 3.20\\u003cbr\\u003eStudents: 6\\u003cbr\\u003eImproved rate: 100%\\u003cbr\\u003eAvg daily AI usage: 4.08 hrs\",\"\\u003cb\\u003ePurpose=Research, AI_Tool_Used=Notion AI\\u003c\\u002fb\\u003e\\u003cbr\\u003eRank: 3\\u003cbr\\u003ePerformance score: 3.17\\u003cbr\\u003eStudents: 3\\u003cbr\\u003eImproved rate: 100%\\u003cbr\\u003eAvg daily AI usage: 3.27 hrs\"],\"marker\":{\"color\":\"#4C78A8\"},\"name\":\"Performance Score\",\"text\":[\"3.27\",\"3.20\",\"3.17\"],\"textposition\":\"outside\",\"x\":[\"Purpose=Learning,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Coding,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Research,\\u003cbr\\u003eAI_Tool_Used=Notion AI\"],\"y\":{\"dtype\":\"f8\",\"bdata\":\"4L4OnDMiCkCamZmZmZkJQBPyQc9mVQlA\"},\"type\":\"bar\"},{\"hoverinfo\":\"skip\",\"mode\":\"text\",\"name\":\"Improved Rate\",\"showlegend\":false,\"text\":[\"Improved: 100%\",\"Improved: 100%\",\"Improved: 100%\"],\"textfont\":{\"color\":\"#F58518\",\"size\":12},\"textposition\":\"top center\",\"x\":[\"Purpose=Learning,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Coding,\\u003cbr\\u003eAI_Tool_Used=ChatGPT\",\"Purpose=Research,\\u003cbr\\u003eAI_Tool_Used=Notion AI\"],\"y\":{\"dtype\":\"f8\",\"bdata\":\"W9O84xSdCkAVrkfhehQKQI4G8BZI0AlA\"},\"type\":\"scatter\"}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"margin\":{\"t\":120,\"b\":120,\"l\":90,\"r\":90},\"legend\":{\"orientation\":\"h\",\"yanchor\":\"top\",\"y\":-0.22,\"xanchor\":\"center\",\"x\":0.5},\"hoverlabel\":{\"font\":{\"size\":12},\"bgcolor\":\"white\",\"align\":\"left\"},\"title\":{\"text\":\"Top 3 Student Groups by Performance\"},\"xaxis\":{\"title\":{\"text\":\"Student Group\"},\"tickangle\":-18,\"automargin\":true},\"yaxis\":{\"title\":{\"text\":\"Performance Score\"},\"rangemode\":\"tozero\",\"gridcolor\":\"#E5ECF6\"},\"height\":620,\"bargap\":0.35,\"bargroupgap\":0.15,\"plot_bgcolor\":\"white\",\"paper_bgcolor\":\"white\"},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

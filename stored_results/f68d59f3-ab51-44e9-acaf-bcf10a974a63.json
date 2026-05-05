@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "result_id": "f68d59f3-ab51-44e9-acaf-bcf10a974a63",
+  "created_at": "2026-05-01T02:54:41.774407+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "Find students who have high stress levels despite relatively low study hours. What factors might explain this?",
+  "resolved_question": "Find students who have high stress levels despite relatively low study hours. What factors might explain this?",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project/datasets/AI_Student_Life_Pakistan_2026.csv')\n\n# Since the dataset has no direct stress column, infer a \"high stress despite low study/use hours\" proxy:\n# - relatively low Daily_Usage_Hours\n# - low Satisfaction_Level and/or Slight Decline in grades\nlow_hours_threshold = df['Daily_Usage_Hours'].quantile(0.25)\n\nhigh_stress_proxy = df[\n    (df['Daily_Usage_Hours'] <= low_hours_threshold) &\n    (\n        (df['Satisfaction_Level'].str.lower() == 'low') |\n        (df['Impact_on_Grades'].str.lower() == 'slight decline')\n    )\n].copy()\n\nfactor_summaries = {\n    'most_common_purposes': high_stress_proxy['Purpose'].value_counts().to_dict(),\n    'impact_on_grades': high_stress_proxy['Impact_on_Grades'].value_counts().to_dict(),\n    'satisfaction_levels': high_stress_proxy['Satisfaction_Level'].value_counts().to_dict(),\n    'education_levels': high_stress_proxy['Education_Level'].value_counts().to_dict(),\n    'cities': high_stress_proxy['City'].value_counts().to_dict(),\n    'ai_tools_used': high_stress_proxy['AI_Tool_Used'].value_counts().to_dict(),\n    'gender': high_stress_proxy['Gender'].value_counts().to_dict()\n}\n\nstudents = high_stress_proxy[\n    ['Student_ID', 'Age', 'Gender', 'Education_Level', 'City',\n     'AI_Tool_Used', 'Daily_Usage_Hours', 'Purpose',\n     'Impact_on_Grades', 'Satisfaction_Level']\n].to_dict(orient='records')\n\nexplanation = (\n    \"The dataset does not contain a direct stress measure, so 'high stress' is approximated using \"\n    \"low satisfaction and/or slight decline in grades among students with relatively low Daily_Usage_Hours \"\n    f\"(bottom 25%, <= {round(float(low_hours_threshold), 2)} hours). \"\n    \"Possible explanatory factors in this group include low satisfaction with AI use, slight grade decline, \"\n    \"and patterns in purpose, education level, city, or tool usage shown in the summaries.\"\n)\n\nresult = {\n    'definition_used': {\n        'low_daily_usage_hours_threshold': float(low_hours_threshold),\n        'high_stress_proxy': 'Satisfaction_Level = Low and/or Impact_on_Grades = Slight Decline'\n    },\n    'students': students,\n    'possible_explanatory_factors': factor_summaries,\n    'explanation': explanation\n}",
+  "execution_result": {
+    "definition_used": {
+      "low_daily_usage_hours_threshold": 1.8,
+      "high_stress_proxy": "Satisfaction_Level = Low and/or Impact_on_Grades = Slight Decline"
+    },
+    "students": [
+      {
+        "Student_ID": 1,
+        "Age": 15,
+        "Gender": "Female",
+        "Education_Level": "School",
+        "City": "Lahore",
+        "AI_Tool_Used": "ChatGPT",
+        "Daily_Usage_Hours": 0.8,
+        "Purpose": "Writing",
+        "Impact_on_Grades": "Slight Decline",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 3,
+        "Age": 16,
+        "Gender": "Female",
+        "Education_Level": "College",
+        "City": "Multan",
+        "AI_Tool_Used": "ChatGPT",
+        "Daily_Usage_Hours": 1.8,
+        "Purpose": "Research",
+        "Impact_on_Grades": "Improved",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 24,
+        "Age": 16,
+        "Gender": "Male",
+        "Education_Level": "University",
+        "City": "Islamabad",
+        "AI_Tool_Used": "Grammarly",
+        "Daily_Usage_Hours": 1.3,
+        "Purpose": "Learning",
+        "Impact_on_Grades": "Slight Decline",
+        "Satisfaction_Level": "High"
+      },
+      {
+        "Student_ID": 30,
+        "Age": 21,
+        "Gender": "Male",
+        "Education_Level": "School",
+        "City": "Multan",
+        "AI_Tool_Used": "Grammarly",
+        "Daily_Usage_Hours": 0.7,
+        "Purpose": "Writing",
+        "Impact_on_Grades": "Slight Decline",
+        "Satisfaction_Level": "Medium"
+      },
+      {
+        "Student_ID": 38,
+        "Age": 25,
+        "Gender": "Female",
+        "Education_Level": "School",
+        "City": "Faisalabad",
+        "AI_Tool_Used": "ChatGPT",
+        "Daily_Usage_Hours": 0.7,
+        "Purpose": "Coding",
+        "Impact_on_Grades": "Improved",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 41,
+        "Age": 18,
+        "Gender": "Female",
+        "Education_Level": "School",
+        "City": "Lahore",
+        "AI_Tool_Used": "Copilot",
+        "Daily_Usage_Hours": 0.8,
+        "Purpose": "Writing",
+        "Impact_on_Grades": "No Change",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 43,
+        "Age": 25,
+        "Gender": "Female",
+        "Education_Level": "School",
+        "City": "Karachi",
+        "AI_Tool_Used": "Gemini",
+        "Daily_Usage_Hours": 0.9,
+        "Purpose": "Homework",
+        "Impact_on_Grades": "Slight Decline",
+        "Satisfaction_Level": "Medium"
+      },
+      {
+        "Student_ID": 57,
+        "Age": 17,
+        "Gender": "Female",
+        "Education_Level": "School",
+        "City": "Faisalabad",
+        "AI_Tool_Used": "Gemini",
+        "Daily_Usage_Hours": 0.8,
+        "Purpose": "Writing",
+        "Impact_on_Grades": "Improved",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 65,
+        "Age": 23,
+        "Gender": "Male",
+        "Education_Level": "College",
+        "City": "Multan",
+        "AI_Tool_Used": "Gemini",
+        "Daily_Usage_Hours": 1.4,
+        "Purpose": "Research",
+        "Impact_on_Grades": "No Change",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 79,
+        "Age": 19,
+        "Gender": "Male",
+        "Education_Level": "College",
+        "City": "Karachi",
+        "AI_Tool_Used": "Notion AI",
+        "Daily_Usage_Hours": 1.7,
+        "Purpose": "Learning",
+        "Impact_on_Grades": "No Change",
+        "Satisfaction_Level": "Low"
+      },
+      {
+        "Student_ID": 86,
+        "Age": 19,
+        "Gender": "Male",
+        "Education_Level": "College",
+        "City": "Karachi",
+        "AI_Tool_Used": "Gemini",
+        "Daily_Usage_Hours": 0.5,
+        "Purpose": "Coding",
+        "Impact_on_Grades": "No Change",
+        "Satisfaction_Level": "Low"
+      }
+    ],
+    "possible_explanatory_factors": {
+      "most_common_purposes": {
+        "Writing": 4,
+        "Research": 2,
+        "Learning": 2,
+        "Coding": 2,
+        "Homework": 1
+      },
+      "impact_on_grades": {
+        "Slight Decline": 4,
+        "No Change": 4,
+        "Improved": 3
+      },
+      "satisfaction_levels": {
+        "Low": 8,
+        "Medium": 2,
+        "High": 1
+      },
+      "education_levels": {
+        "School": 6,
+        "College": 4,
+        "University": 1
+      },
+      "cities": {
+        "Multan": 3,
+        "Karachi": 3,
+        "Lahore": 2,
+        "Faisalabad": 2,
+        "Islamabad": 1
+      },
+      "ai_tools_used": {
+        "Gemini": 4,
+        "ChatGPT": 3,
+        "Grammarly": 2,
+        "Copilot": 1,
+        "Notion AI": 1
+      },
+      "gender": {
+        "Female": 6,
+        "Male": 5
+      }
+    },
+    "explanation": "The dataset does not contain a direct stress measure, so 'high stress' is approximated using low satisfaction and/or slight decline in grades among students with relatively low Daily_Usage_Hours (bottom 25%, <= 1.8 hours). Possible explanatory factors in this group include low satisfaction with AI use, slight grade decline, and patterns in purpose, education level, city, or tool usage shown in the summaries."
+  },
+  "evaluation": "PASS",
+  "final_answer": "Using the proxy of high stress as low satisfaction and/or slight grade decline, there are 11 students who appear to have relatively high stress despite low daily usage of AI tools (<= 1.8 hours).\n\nWho they are:\n- Student IDs: 1, 3, 24, 30, 38, 41, 43, 57, 65, 79, 86\n\nWhat stands out:\n- Low satisfaction is the strongest signal:\n  - 8 of 11 had Low satisfaction\n- Academic outcomes were not strongly positive:\n  - 4 had Slight Decline in grades\n  - 4 had No Change\n  - 3 had Improved grades\n- Most common usage purposes:\n  - Writing: 4\n  - Research: 2\n  - Learning: 2\n  - Coding: 2\n  - Homework: 1\n\nPossible factors that might explain the stress:\n- Dissatisfaction with AI support seems important, since most of these students reported Low satisfaction.\n- Limited academic payoff may be contributing:\n  - Most students saw either no improvement or a slight decline in grades.\n- Writing-related use appears most common, which may suggest students are using AI for assignment pressure rather than deeper learning support.\n- The group is concentrated more in:\n  - School level: 6 students\n  - College level: 4 students\n- Tool use is spread across several platforms, but Gemini and ChatGPT appear most often:\n  - Gemini: 4\n  - ChatGPT: 3\n\nImportant caveat:\n- The dataset does not include a direct stress variable, so this is an inferred group rather than confirmed high-stress students.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "bar",
+    "reason": "The answer identifies a subgroup and compares several categorical factors (satisfaction, grade impact, purpose, education level, and tool usage). A bar chart would make the main patterns and rankings within this group much clearer than text alone.",
+    "data_focus": "Counts of the 11 identified students by satisfaction level, impact on grades, purpose, education level, and AI tool used."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Grouped bar chart of the 11 identified students, showing counts by purpose, grades impact, satisfaction, education level, and AI tool to highlight likely explanatory factors.",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"1faf45a6-13e9-421e-a0ed-4d5c49ff3c75\" class=\"plotly-graph-div\" style=\"height:720px; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"1faf45a6-13e9-421e-a0ed-4d5c49ff3c75\")) {                    Plotly.newPlot(                        \"1faf45a6-13e9-421e-a0ed-4d5c49ff3c75\",                        [{\"customdata\":[[\"Purpose\",\"Writing\"],[\"Purpose\",\"Coding\"],[\"Purpose\",\"Learning\"],[\"Purpose\",\"Research\"],[\"Purpose\",\"Homework\"]],\"hovertemplate\":\"\\u003cb\\u003e%{customdata[0]}\\u003c\\u002fb\\u003e\\u003cbr\\u003eCategory: %{customdata[1]}\\u003cbr\\u003eStudents: %{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"marker\":{\"color\":\"#636EFA\"},\"name\":\"Purpose\",\"x\":[\"Writing\",\"Coding\",\"Learning\",\"Research\",\"Homework\"],\"y\":{\"dtype\":\"i1\",\"bdata\":\"BAICAgE=\"},\"type\":\"bar\"},{\"customdata\":[[\"Grades impact\",\"No Change\"],[\"Grades impact\",\"Slight Decline\"],[\"Grades impact\",\"Improved\"]],\"hovertemplate\":\"\\u003cb\\u003e%{customdata[0]}\\u003c\\u002fb\\u003e\\u003cbr\\u003eCategory: %{customdata[1]}\\u003cbr\\u003eStudents: %{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"marker\":{\"color\":\"#EF553B\"},\"name\":\"Grades impact\",\"x\":[\"No Change\",\"Slight Decline\",\"Improved\"],\"y\":{\"dtype\":\"i1\",\"bdata\":\"BAQD\"},\"type\":\"bar\"},{\"customdata\":[[\"Satisfaction\",\"Low\"],[\"Satisfaction\",\"Medium\"],[\"Satisfaction\",\"High\"]],\"hovertemplate\":\"\\u003cb\\u003e%{customdata[0]}\\u003c\\u002fb\\u003e\\u003cbr\\u003eCategory: %{customdata[1]}\\u003cbr\\u003eStudents: %{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"marker\":{\"color\":\"#00CC96\"},\"name\":\"Satisfaction\",\"x\":[\"Low\",\"Medium\",\"High\"],\"y\":{\"dtype\":\"i1\",\"bdata\":\"CAIB\"},\"type\":\"bar\"},{\"customdata\":[[\"Education\",\"School\"],[\"Education\",\"College\"],[\"Education\",\"University\"]],\"hovertemplate\":\"\\u003cb\\u003e%{customdata[0]}\\u003c\\u002fb\\u003e\\u003cbr\\u003eCategory: %{customdata[1]}\\u003cbr\\u003eStudents: %{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"marker\":{\"color\":\"#AB63FA\"},\"name\":\"Education\",\"x\":[\"School\",\"College\",\"University\"],\"y\":{\"dtype\":\"i1\",\"bdata\":\"BgQB\"},\"type\":\"bar\"},{\"customdata\":[[\"AI tool\",\"Gemini\"],[\"AI tool\",\"ChatGPT\"],[\"AI tool\",\"Grammarly\"],[\"AI tool\",\"Copilot\"],[\"AI tool\",\"Notion AI\"]],\"hovertemplate\":\"\\u003cb\\u003e%{customdata[0]}\\u003c\\u002fb\\u003e\\u003cbr\\u003eCategory: %{customdata[1]}\\u003cbr\\u003eStudents: %{y}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"marker\":{\"color\":\"#FFA15A\"},\"name\":\"AI tool\",\"x\":[\"Gemini\",\"ChatGPT\",\"Grammarly\",\"Copilot\",\"Notion AI\"],\"y\":{\"dtype\":\"i1\",\"bdata\":\"BAMCAQE=\"},\"type\":\"bar\"}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"margin\":{\"t\":150,\"b\":170,\"l\":95,\"r\":95},\"legend\":{\"title\":{\"text\":\"\"},\"orientation\":\"h\",\"yanchor\":\"top\",\"y\":-0.28,\"xanchor\":\"left\",\"x\":0},\"hoverlabel\":{\"font\":{\"size\":13}},\"title\":{\"text\":\"Potential factors among low-study-hour, high-stress proxy\\u003cbr\\u003estudents\\u003cbr\\u003e\\u003csup\\u003eIdentified subgroup size: 11 students | Low-\\u003cbr\\u003eusage threshold: ≤ 1.8 hours\\u003c\\u002fsup\\u003e\",\"x\":0.02,\"xanchor\":\"left\",\"y\":0.98,\"yanchor\":\"top\"},\"xaxis\":{\"title\":{\"text\":\"Category\"},\"tickangle\":-20,\"automargin\":true},\"yaxis\":{\"title\":{\"text\":\"Student count\"},\"dtick\":1,\"rangemode\":\"tozero\",\"automargin\":true},\"barmode\":\"group\",\"bargap\":0.35,\"bargroupgap\":0.15,\"height\":720,\"font\":{\"size\":13},\"hovermode\":\"closest\"},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

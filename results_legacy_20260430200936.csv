@@ -1,0 +1,2820 @@
+dataset_name,question,generated_code,final_answer,visualization_decision,visualization_path,visualization_error
+housing.csv,Identify areas with similar median income levels but significantly different median house value. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('housing.csv')
+
+# Create income bands to compare areas with similar median income
+df['income_band'] = pd.qcut(df['median_income'], q=8, duplicates='drop')
+
+group_cols = ['income_band', 'ocean_proximity']
+agg = df.groupby(group_cols).agg(
+    count=('median_house_value', 'size'),
+    median_income_mean=('median_income', 'mean'),
+    median_house_value_median=('median_house_value', 'median'),
+    housing_median_age_median=('housing_median_age', 'median'),
+    latitude_mean=('latitude', 'mean'),
+    longitude_mean=('longitude', 'mean'),
+    total_rooms_median=('total_rooms', 'median'),
+    total_bedrooms_median=('total_bedrooms', 'median'),
+    population_median=('population', 'median'),
+    households_median=('households', 'median')
+).reset_index()
+
+# Keep only groups with enough observations for meaningful comparison
+agg = agg[agg['count'] >= 20].copy()
+
+pairs = []
+for band, sub in agg.groupby('income_band'):
+    sub = sub.sort_values('median_house_value_median').reset_index(drop=True)
+    if len(sub) < 2:
+        continue
+    for i in range(len(sub)):
+        for j in range(i + 1, len(sub)):
+            r1 = sub.iloc[i]
+            r2 = sub.iloc[j]
+            income_gap_pct = abs(r1['median_income_mean'] - r2['median_income_mean']) / max(
+                (r1['median_income_mean'] + r2['median_income_mean']) / 2, 1e-9
+            )
+            value_gap = abs(r1['median_house_value_median'] - r2['median_house_value_median'])
+            value_gap_pct = value_gap / max(
+                (r1['median_house_value_median'] + r2['median_house_value_median']) / 2, 1e-9
+            )
+            if income_gap_pct <= 0.10 and value_gap >= 80000:
+                expensive = r1 if r1['median_house_value_median'] > r2['median_house_value_median'] else r2
+                cheaper = r2 if expensive is r1 else r1
+                pairs.append({
+                    'income_band': str(band),
+                    'area_1_ocean_proximity': r1['ocean_proximity'],
+                    'area_1_avg_median_income': float(round(r1['median_income_mean'], 4)),
+                    'area_1_median_house_value': float(round(r1['median_house_value_median'], 2)),
+                    'area_1_housing_age_median': float(r1['housing_median_age_median']),
+                    'area_1_latitude_mean': float(round(r1['latitude_mean'], 3)),
+                    'area_1_longitude_mean': float(round(r1['longitude_mean'], 3)),
+                    'area_2_ocean_proximity': r2['ocean_proximity'],
+                    'area_2_avg_median_income': float(round(r2['median_income_mean'], 4)),
+                    'area_2_median_house_value': float(round(r2['median_house_value_median'], 2)),
+                    'area_2_housing_age_median': float(r2['housing_median_age_median']),
+                    'area_2_latitude_mean': float(round(r2['latitude_mean'], 3)),
+                    'area_2_longitude_mean': float(round(r2['longitude_mean'], 3)),
+                    'house_value_gap': float(round(value_gap, 2)),
+                    'house_value_gap_pct': float(round(value_gap_pct * 100, 2)),
+                    'likely_explanations': [
+                        f""Ocean proximity differs: higher-priced area is '{expensive['ocean_proximity']}' while lower-priced area is '{cheaper['ocean_proximity']}', suggesting location/amenity effects."",
+                        ""Latitude/longitude means differ, indicating different regional markets even at similar income levels."",
+                        f""Housing stock age differs (median ages {float(expensive['housing_median_age_median'])} vs {float(cheaper['housing_median_age_median'])}), which may reflect neighborhood maturity and desirability."",
+                        ""Differences in density/stock characteristics (rooms, bedrooms, population, households) may also contribute to valuation differences."",
+                        ""If the higher-priced group is coastal or bay-adjacent, scarcity and access likely raise prices beyond what income alone predicts.""
+                    ]
+                })
+
+pairs = sorted(pairs, key=lambda x: x['house_value_gap'], reverse=True)
+
+result = {
+    'similar_income_different_value_pairs': pairs[:10],
+    'summary': (
+        ""Comparing areas grouped by similar median_income shows that ocean_proximity and geographic location ""
+        ""are strong drivers of differences in median_house_value. Areas near the ocean or bay often have much ""
+        ""higher home values than inland areas, even when incomes are similar. Housing age and local housing ""
+        ""stock characteristics also appear to contribute.""
+    )
+}","Areas with similar median incomes but very different house values are mostly cases where inland areas are being compared with coastal or bay-adjacent areas.
+
+Key examples:
+- In the highest income band, inland areas average about 7.16 in median income and have median house values around $254k, while near-ocean areas with similar income average about $481k — a gap of about $227k.
+- In that same upper income band, inland areas at about $254k are also far below near-bay areas at about $398k, a gap of about $144k.
+- In middle income bands, the pattern repeats:
+  - Around income 4.34, inland areas are about $143k vs near-ocean at about $271k.
+  - Around income 5.21, inland areas are about $175k vs near-ocean at about $300k.
+  - Around income 3.76, inland areas are about $127k vs near-ocean at about $238k.
+
+What likely explains the differences:
+- Proximity to the ocean or bay: coastal access and amenities raise prices beyond what income alone would predict.
+- Different regional markets: the latitude/longitude patterns suggest these are in distinct housing markets, with some regions structurally more expensive.
+- Scarcity and desirability: waterfront or near-coastal land is limited and more sought after.
+- Housing stock differences: higher-value areas often have older, more established neighborhoods, which may be more desirable.
+- Other neighborhood characteristics: density, household composition, and housing quality may also push values apart.
+
+Overall, similar income does not imply similar home prices; location—especially coastal or bay proximity—appears to be the biggest factor.","{""needed"": true, ""chart_type"": ""grouped_bar"", ""reason"": ""The answer compares multiple area pairs across income bands and emphasizes ranking the house value gaps between inland and coastal/bay areas. A grouped bar chart would make these side-by-side comparisons much clearer than text alone."", ""data_focus"": ""For each highlighted income band pair, plot median house value for area_1 vs area_2, grouped by income band and labeled by ocean_proximity; optionally include median income as annotations to show incomes are similar while house values differ.""}",visualizations/housing_identify_areas_with_similar_median_income_levels_but_signifi.html,
+housing.csv,What is the average median house value across the dataset?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+result = float(df[""median_house_value""].mean())","The average median house value across the dataset is **206,943.8568**.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The question asks for a single aggregate value, and the result is a single scalar. A visualization would not add clarity unless the user specifically requested one."", ""data_focus"": ""average of the median house value across all records""}",,
+housing.csv,Identify areas with similar median income levels but significantly different median house value. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('housing.csv')
+
+# Create income bands to find areas with similar median income
+df['income_band'] = pd.qcut(df['median_income'], q=10, duplicates='drop')
+
+group_cols = ['income_band', 'ocean_proximity']
+agg = df.groupby(group_cols).agg(
+    count=('median_house_value', 'size'),
+    median_income_mean=('median_income', 'mean'),
+    median_house_value_mean=('median_house_value', 'mean'),
+    housing_median_age_mean=('housing_median_age', 'mean'),
+    latitude_mean=('latitude', 'mean'),
+    longitude_mean=('longitude', 'mean'),
+    total_rooms_mean=('total_rooms', 'mean'),
+    total_bedrooms_mean=('total_bedrooms', 'mean'),
+    population_mean=('population', 'mean'),
+    households_mean=('households', 'mean')
+).reset_index()
+
+# Compare areas within the same income band and identify large house value differences
+pairs = []
+for band, g in agg.groupby('income_band'):
+    g = g.reset_index(drop=True)
+    if len(g) < 2:
+        continue
+    for i in range(len(g)):
+        for j in range(i + 1, len(g)):
+            a = g.loc[i]
+            b = g.loc[j]
+            value_diff = abs(a['median_house_value_mean'] - b['median_house_value_mean'])
+            income_diff = abs(a['median_income_mean'] - b['median_income_mean'])
+            pairs.append({
+                'income_band': str(band),
+                'area_1': a['ocean_proximity'],
+                'area_2': b['ocean_proximity'],
+                'area_1_median_income_mean': round(float(a['median_income_mean']), 4),
+                'area_2_median_income_mean': round(float(b['median_income_mean']), 4),
+                'income_difference': round(float(income_diff), 4),
+                'area_1_median_house_value_mean': round(float(a['median_house_value_mean']), 2),
+                'area_2_median_house_value_mean': round(float(b['median_house_value_mean']), 2),
+                'house_value_difference': round(float(value_diff), 2),
+                'area_1_housing_age_mean': round(float(a['housing_median_age_mean']), 2),
+                'area_2_housing_age_mean': round(float(b['housing_median_age_mean']), 2),
+                'area_1_latitude_mean': round(float(a['latitude_mean']), 3),
+                'area_2_latitude_mean': round(float(b['latitude_mean']), 3),
+                'area_1_longitude_mean': round(float(a['longitude_mean']), 3),
+                'area_2_longitude_mean': round(float(b['longitude_mean']), 3),
+                'area_1_population_mean': round(float(a['population_mean']), 2),
+                'area_2_population_mean': round(float(b['population_mean']), 2),
+                'area_1_total_rooms_mean': round(float(a['total_rooms_mean']), 2),
+                'area_2_total_rooms_mean': round(float(b['total_rooms_mean']), 2),
+                'area_1_count': int(a['count']),
+                'area_2_count': int(b['count'])
+            })
+
+pairs_df = pd.DataFrame(pairs)
+
+# Focus on meaningful comparisons: very similar income, large house value gap, adequate sample sizes
+filtered = pairs_df[
+    (pairs_df['income_difference'] <= 0.3) &
+    (pairs_df['house_value_difference'] >= 75000) &
+    (pairs_df['area_1_count'] >= 20) &
+    (pairs_df['area_2_count'] >= 20)
+].sort_values(['house_value_difference', 'income_difference'], ascending=[False, True])
+
+top_pairs = filtered.head(8).to_dict(orient='records')
+
+# Summarize likely explanatory factors from dataset patterns
+ocean_summary = df.groupby('ocean_proximity').agg(
+    avg_house_value=('median_house_value', 'mean'),
+    avg_income=('median_income', 'mean'),
+    avg_age=('housing_median_age', 'mean'),
+    avg_latitude=('latitude', 'mean'),
+    avg_longitude=('longitude', 'mean')
+).reset_index()
+
+result = {
+    'similar_income_different_value_examples': top_pairs,
+    'likely_explanations': [
+        'Ocean proximity appears to be a major factor: areas classified as NEAR BAY or NEAR OCEAN often have much higher median house values than INLAND or <1H OCEAN areas even when median incomes are similar.',
+        'Location differences captured by latitude/longitude likely reflect access to high-demand coastal metros, which raises home values independently of local income.',
+        'Housing age may matter because older neighborhoods in desirable coastal locations can still command premium prices.',
+        'Differences in supply-demand balance, amenities, commute access, and desirability are not directly measured but are partially reflected through ocean_proximity and geographic coordinates.',
+        'Population and housing stock differences may also contribute, but the strongest visible pattern in this dataset is the premium associated with coastal/bay-adjacent locations.'
+    ],
+    'ocean_proximity_overview': ocean_summary.round(2).to_dict(orient='records')
+}","Areas with very similar median incomes but much different home values are mostly **INLAND vs. coastal areas**.
+
+Examples:
+- In the income band **4.42–5.10**, **INLAND** and **NEAR OCEAN** have nearly identical incomes (~4.75), but house values differ by about **$131.5k** ($169.1k vs. $300.7k).
+- In the income band **3.13–3.52**, **INLAND** and **NEAR BAY** also have very similar incomes (~3.30), yet house values differ by about **$121.7k** ($127.3k vs. $249.0k).
+- Similar gaps appear in other bands too: **INLAND vs. NEAR BAY/NEAR OCEAN** repeatedly shows **$100k+ higher** home values in the coastal locations.
+
+What likely explains this:
+- **Coastal proximity premium:** Being near the bay or ocean strongly raises prices.
+- **Geographic location:** Coastal/bay areas are closer to high-demand metros and job centers, which boosts housing demand.
+- **Neighborhood desirability and amenities:** Views, climate, recreation, and prestige likely add value beyond what income alone predicts.
+- **Housing age and established neighborhoods:** Many bay/coastal areas are older but still more expensive because they are in desirable, supply-constrained locations.
+- **Supply-demand constraints:** Coastal land is scarcer, so prices stay higher even when incomes are similar.
+
+Overall, the clearest pattern is that **location—especially proximity to the bay or ocean—matters far more than income alone in explaining house value differences**.","{""needed"": true, ""chart_type"": ""grouped_bar"", ""reason"": ""The answer compares multiple area pairs across income bands and highlights large house value gaps despite similar incomes. A grouped bar chart would make these cross-band comparisons and rankings much clearer than text alone."", ""data_focus"": ""For each highlighted income band, plot paired areas (e.g., INLAND vs NEAR OCEAN/NEAR BAY) with bars for mean median house value, optionally annotating the nearly equal mean median income for each pair.""}",visualizations/housing_identify_areas_with_similar_median_income_levels_but_signifi.html,
+housing.csv,what are the top 3 in median income,"import pandas as pd
+
+df = pd.read_csv('housing.csv')
+result = df['median_income'].nlargest(3).tolist()","The top 3 values for median income are **15.0001, 15.0001, and 15.0001**.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The answer is a simple list of three scalar values, and a visualization would not add meaningful clarity beyond the textual result."", ""data_focus"": ""Top 3 median income values""}",,
+housing.csv,how about only near the bay,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+near_bay = df[df[""ocean_proximity""] == ""NEAR BAY""]
+result = near_bay[""median_income""].nlargest(3).tolist()","Among the rows that are near the bay, the top 3 median income values are **15.0001, 15.0001, and 14.2959**.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The question asks for the top 3 values and the result is a short ranked list, which is clear in text without needing a visualization."", ""data_focus"": ""Top 3 median income values among rows near the bay""}",,
+housing.csv,plot it,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+near_bay = df[df[""ocean_proximity""] == ""NEAR BAY""]
+top3 = near_bay[""median_income""].nlargest(3).tolist()
+
+result = {
+    ""chart_type"": ""bar"",
+    ""title"": ""Top 3 Median Income Values Among Rows Near the Bay"",
+    ""x"": [""1"", ""2"", ""3""],
+    ""y"": [float(v) for v in top3],
+    ""source"": ""prior_turn"" if prior_turn and prior_turn.get(""execution_result"") else ""computed"",
+    ""values"": [float(v) for v in (prior_turn[""execution_result""] if prior_turn and prior_turn.get(""execution_result"") else top3)]
+}","Here is a bar chart of the top 3 median income values among rows near the bay:
+
+- 1: **15.0001**
+- 2: **15.0001**
+- 3: **14.2959**
+
+If you want, I can also present these as a ranked table.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The user explicitly asked to plot the top 3 median income values, and a bar chart clearly shows the ranking and comparison among the three values."", ""data_focus"": ""Top 3 median income values for rows labeled near the bay, shown as ranked categories 1, 2, and 3 with values 15.0001, 15.0001, and 14.2959.""}",visualizations/housing_plot_it.html,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+impact_order = {
+    'Significant Decline': 0,
+    'Slight Decline': 1,
+    'No Change': 2,
+    'Improved': 3,
+    'Significant Improvement': 4
+}
+
+df = df.copy()
+df['Impact_Score'] = df['Impact_on_Grades'].map(impact_order)
+
+pairs = []
+hours = df['Daily_Usage_Hours'].tolist()
+
+for i in range(len(df)):
+    for j in range(i + 1, len(df)):
+        hour_diff = abs(df.iloc[i]['Daily_Usage_Hours'] - df.iloc[j]['Daily_Usage_Hours'])
+        impact_diff = abs(df.iloc[i]['Impact_Score'] - df.iloc[j]['Impact_Score'])
+        if hour_diff <= 0.3 and impact_diff >= 2:
+            s1 = df.iloc[i]
+            s2 = df.iloc[j]
+            differing_factors = []
+            for col in ['Education_Level', 'Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Gender', 'City', 'Age']:
+                if s1[col] != s2[col]:
+                    differing_factors.append(col)
+            pairs.append({
+                'Student_1_ID': int(s1['Student_ID']),
+                'Student_2_ID': int(s2['Student_ID']),
+                'Student_1_Usage_Hours': float(s1['Daily_Usage_Hours']),
+                'Student_2_Usage_Hours': float(s2['Daily_Usage_Hours']),
+                'Student_1_Impact': s1['Impact_on_Grades'],
+                'Student_2_Impact': s2['Impact_on_Grades'],
+                'Hour_Difference': float(round(hour_diff, 2)),
+                'Impact_Difference_Steps': int(impact_diff),
+                'Possible_Explaining_Factors': differing_factors,
+                'Student_1_Profile': {
+                    'Age': int(s1['Age']),
+                    'Gender': s1['Gender'],
+                    'Education_Level': s1['Education_Level'],
+                    'City': s1['City'],
+                    'AI_Tool_Used': s1['AI_Tool_Used'],
+                    'Purpose': s1['Purpose'],
+                    'Satisfaction_Level': s1['Satisfaction_Level']
+                },
+                'Student_2_Profile': {
+                    'Age': int(s2['Age']),
+                    'Gender': s2['Gender'],
+                    'Education_Level': s2['Education_Level'],
+                    'City': s2['City'],
+                    'AI_Tool_Used': s2['AI_Tool_Used'],
+                    'Purpose': s2['Purpose'],
+                    'Satisfaction_Level': s2['Satisfaction_Level']
+                }
+            })
+
+pairs = sorted(
+    pairs,
+    key=lambda x: (-x['Impact_Difference_Steps'], x['Hour_Difference'], x['Student_1_ID'], x['Student_2_ID'])
+)
+
+factor_counts = {}
+for p in pairs:
+    for f in p['Possible_Explaining_Factors']:
+        factor_counts[f] = factor_counts.get(f, 0) + 1
+
+result = {
+    'similar_study_time_different_performance_pairs': pairs,
+    'summary': {
+        'pair_count': len(pairs),
+        'study_time_similarity_rule': 'Daily_Usage_Hours difference <= 0.3',
+        'performance_difference_rule': 'Impact_on_Grades difference >= 2 levels',
+        'most_common_possible_factors': dict(sorted(factor_counts.items(), key=lambda x: (-x[1], x[0])))
+    },
+    'interpretation': (
+        'Students with nearly the same Daily_Usage_Hours can still report very different grade impacts. '
+        'Likely explanations in this dataset include differences in Purpose, Education_Level, AI_Tool_Used, '
+        'Satisfaction_Level, Age, City, and Gender. In particular, using AI for research/learning versus '
+        'other purposes, being at different education stages, and having different satisfaction levels may '
+        'help explain why similar usage time does not always lead to similar academic outcomes.'
+    )
+}","There are \textbf{137 pairs} of students who have \textbf{very similar study/AI usage time} (\(\leq \mathbf{0.3}\) hours difference) but \textbf{significantly different academic outcomes} (\(\geq \mathbf{2}\) impact levels apart).
+
+### Main takeaway
+Similar study time alone does **not** guarantee similar performance. The most likely factors behind these differences are:
+
+- \textbf{Age} (\(\mathbf{123}\) pairs)
+- \textbf{AI tool used} (\(\mathbf{115}\) pairs)
+- \textbf{City} (\(\mathbf{115}\) pairs)
+- \textbf{Purpose of use} (\(\mathbf{111}\) pairs)
+- \textbf{Education level} (\(\mathbf{91}\) pairs)
+- \textbf{Satisfaction level} (\(\mathbf{86}\) pairs)
+- \textbf{Gender} (\(\mathbf{72}\) pairs)
+
+### Example patterns
+- At \textbf{4.2 hours}, one student improved while another had a slight decline; likely differences were \textbf{purpose} (\emph{learning} vs. \emph{coding}), \textbf{AI tool} (\emph{ChatGPT} vs. \emph{Grammarly}), and \textbf{age}.
+- At \textbf{2.0 hours}, one student declined while another improved even though both used \textbf{Copilot}; the likely differences were \textbf{education level}, \textbf{purpose} (\emph{research} vs. \emph{learning}), and \textbf{satisfaction level}.
+- At \textbf{5.0 hours}, students with the same usage still showed opposite outcomes, suggesting \textbf{tool choice}, \textbf{education stage}, and \textbf{learning purpose} matter more than time alone.
+
+### What might explain the differences?
+The strongest explanation is that \textbf{how} students use AI matters more than just \textbf{how long}. Students using AI for \textbf{learning} or \textbf{research} often differ from those using it for \textbf{coding}, \textbf{writing}, or \textbf{homework}. Differences in \textbf{education level}, \textbf{tool effectiveness}, and \textbf{satisfaction with the tool} may also influence whether similar time leads to improvement or decline.
+
+So, the clearest conclusion is: \textbf{study time is not the main driver by itself}; \textbf{purpose, tool choice, education context, and user experience} are more plausible reasons for the performance gap.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer highlights a ranking of possible explanatory factors across many student pairs, and a bar chart would make the relative importance of factors much easier to compare than text alone."", ""data_focus"": ""Counts of most common possible explanatory factors across the 137 similar-study-time but different-performance pairs (Age, AI tool used, City, Purpose, Education level, Satisfaction level, Gender).""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+impact_order = {
+    ""Significant Decline"": 1,
+    ""Slight Decline"": 2,
+    ""No Change"": 3,
+    ""Improved"": 4,
+    ""Significantly Improved"": 5
+}
+
+df = df.copy()
+df[""Impact_Score""] = df[""Impact_on_Grades""].map(impact_order)
+
+pairs = []
+n = len(df)
+
+for i in range(n):
+    for j in range(i + 1, n):
+        time_diff = abs(df.loc[i, ""Daily_Usage_Hours""] - df.loc[j, ""Daily_Usage_Hours""])
+        score_diff = abs(df.loc[i, ""Impact_Score""] - df.loc[j, ""Impact_Score""])
+        if time_diff <= 0.2 and score_diff >= 2:
+            row_i = df.loc[i]
+            row_j = df.loc[j]
+            differing_factors = []
+            for col in [""Education_Level"", ""Purpose"", ""AI_Tool_Used"", ""Satisfaction_Level"", ""Gender"", ""City"", ""Age""]:
+                if row_i[col] != row_j[col]:
+                    differing_factors.append(col)
+            pairs.append({
+                ""student_1_id"": int(row_i[""Student_ID""]),
+                ""student_2_id"": int(row_j[""Student_ID""]),
+                ""study_time_1"": float(row_i[""Daily_Usage_Hours""]),
+                ""study_time_2"": float(row_j[""Daily_Usage_Hours""]),
+                ""performance_1"": row_i[""Impact_on_Grades""],
+                ""performance_2"": row_j[""Impact_on_Grades""],
+                ""time_difference"": float(round(time_diff, 2)),
+                ""performance_gap_score"": int(score_diff),
+                ""possible_explanatory_factors"": differing_factors,
+                ""student_1_profile"": {
+                    ""Age"": int(row_i[""Age""]),
+                    ""Gender"": row_i[""Gender""],
+                    ""Education_Level"": row_i[""Education_Level""],
+                    ""City"": row_i[""City""],
+                    ""AI_Tool_Used"": row_i[""AI_Tool_Used""],
+                    ""Purpose"": row_i[""Purpose""],
+                    ""Satisfaction_Level"": row_i[""Satisfaction_Level""]
+                },
+                ""student_2_profile"": {
+                    ""Age"": int(row_j[""Age""]),
+                    ""Gender"": row_j[""Gender""],
+                    ""Education_Level"": row_j[""Education_Level""],
+                    ""City"": row_j[""City""],
+                    ""AI_Tool_Used"": row_j[""AI_Tool_Used""],
+                    ""Purpose"": row_j[""Purpose""],
+                    ""Satisfaction_Level"": row_j[""Satisfaction_Level""]
+                }
+            })
+
+pairs_sorted = sorted(
+    pairs,
+    key=lambda x: (-x[""performance_gap_score""], x[""time_difference""], x[""student_1_id""], x[""student_2_id""])
+)
+
+factor_counts = {}
+for p in pairs_sorted:
+    for f in p[""possible_explanatory_factors""]:
+        factor_counts[f] = factor_counts.get(f, 0) + 1
+
+result = {
+    ""criteria"": {
+        ""similar_study_time"": ""Daily_Usage_Hours difference <= 0.2"",
+        ""significantly_different_performance"": ""Impact_on_Grades difference >= 2 levels""
+    },
+    ""similar_time_different_performance_pairs"": pairs_sorted,
+    ""summary"": {
+        ""number_of_pairs_found"": len(pairs_sorted),
+        ""most_common_possible_factors"": dict(sorted(factor_counts.items(), key=lambda x: (-x[1], x[0]))),
+        ""interpretation"": (
+            ""Students with nearly the same daily AI usage can report very different grade impacts. ""
+            ""The most plausible explanations in this dataset are differences in Purpose, Education_Level, ""
+            ""AI_Tool_Used, Satisfaction_Level, Age, City, and Gender across matched pairs. ""
+            ""This suggests that how students use AI, their academic context, and their experience with the tool ""
+            ""may matter more than usage time alone.""
+        )
+    }
+}","There are \textbf{78 student pairs} with \textbf{similar study/AI usage time} (\(\le 0.2\) hours difference) but \textbf{significantly different academic performance} (\(\ge 2\) performance levels apart).
+
+### Most common factors linked to these differences
+Across these matched pairs, the most frequently differing factors were:
+
+- \textbf{Age}: \(\mathbf{71}\) pairs  
+- \textbf{City}: \(\mathbf{64}\) pairs  
+- \textbf{AI_Tool_Used}: \(\mathbf{63}\) pairs  
+- \textbf{Purpose}: \(\mathbf{61}\) pairs  
+- \textbf{Education_Level}: \(\mathbf{51}\) pairs  
+- \textbf{Satisfaction_Level}: \(\mathbf{48}\) pairs  
+- \textbf{Gender}: \(\mathbf{43}\) pairs  
+
+### Example pairs
+- \textbf{Student 1 vs 57}: both used AI for \(\mathbf{0.8}\) hours, but one reported \textbf{Slight Decline} while the other reported \textbf{Improved}. Likely differences: \textbf{AI tool}, \textbf{city}, and \textbf{age}.
+- \textbf{Student 4 vs 8}: both used AI for \(\mathbf{4.2}\) hours, but one \textbf{Improved} and the other had a \textbf{Slight Decline}. Likely differences: \textbf{purpose}, \textbf{AI tool}, and \textbf{age}.
+- \textbf{Student 7 vs 76}: both used AI for \(\mathbf{2.0}\) hours, yet outcomes differed from \textbf{Slight Decline} to \textbf{Improved}. Likely differences: \textbf{education level}, \textbf{purpose}, \textbf{satisfaction}, \textbf{city}, and \textbf{age}.
+
+### Takeaway
+The main insight is that \textbf{time spent studying/using AI alone does not explain performance differences}. Instead, \textbf{how students use AI} (\textbf{purpose}), \textbf{which tool they use}, their \textbf{education level}, and their \textbf{satisfaction/experience} with the tool appear to matter more. Contextual factors like \textbf{age} and \textbf{city} may also reflect differences in learning environment, resources, or academic support.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer emphasizes a ranking of the most common explanatory factors across many matched student pairs. A bar chart would make these comparisons much clearer than text alone and quickly show which factors appear most often."", ""data_focus"": ""Counts of most_common_possible_factors across the 78 similar-study-time but different-performance pairs: Age, City, AI_Tool_Used, Purpose, Education_Level, Satisfaction_Level, and Gender.""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+impact_order = {
+    ""Significant Decline"": 0,
+    ""Slight Decline"": 1,
+    ""No Change"": 2,
+    ""Improved"": 3,
+    ""Significantly Improved"": 4
+}
+
+df = df.copy()
+df[""Impact_Score""] = df[""Impact_on_Grades""].map(impact_order)
+
+pairs = []
+usage_tolerance = 0.2
+score_diff_threshold = 2
+
+for i in range(len(df)):
+    for j in range(i + 1, len(df)):
+        r1 = df.iloc[i]
+        r2 = df.iloc[j]
+        usage_diff = abs(r1[""Daily_Usage_Hours""] - r2[""Daily_Usage_Hours""])
+        score_diff = abs(r1[""Impact_Score""] - r2[""Impact_Score""])
+        if usage_diff <= usage_tolerance and score_diff >= score_diff_threshold:
+            differing_factors = []
+            for col in [""Education_Level"", ""Purpose"", ""AI_Tool_Used"", ""Satisfaction_Level"", ""Age"", ""Gender"", ""City""]:
+                if r1[col] != r2[col]:
+                    differing_factors.append(col)
+            pairs.append({
+                ""student_1_id"": int(r1[""Student_ID""]),
+                ""student_2_id"": int(r2[""Student_ID""]),
+                ""student_1_usage_hours"": float(r1[""Daily_Usage_Hours""]),
+                ""student_2_usage_hours"": float(r2[""Daily_Usage_Hours""]),
+                ""student_1_grade_impact"": r1[""Impact_on_Grades""],
+                ""student_2_grade_impact"": r2[""Impact_on_Grades""],
+                ""usage_difference_hours"": float(round(usage_diff, 2)),
+                ""grade_impact_score_difference"": int(score_diff),
+                ""potential_explanatory_factors"": differing_factors,
+                ""student_1_profile"": {
+                    ""Education_Level"": r1[""Education_Level""],
+                    ""Purpose"": r1[""Purpose""],
+                    ""AI_Tool_Used"": r1[""AI_Tool_Used""],
+                    ""Satisfaction_Level"": r1[""Satisfaction_Level""],
+                    ""Age"": int(r1[""Age""]),
+                    ""Gender"": r1[""Gender""],
+                    ""City"": r1[""City""]
+                },
+                ""student_2_profile"": {
+                    ""Education_Level"": r2[""Education_Level""],
+                    ""Purpose"": r2[""Purpose""],
+                    ""AI_Tool_Used"": r2[""AI_Tool_Used""],
+                    ""Satisfaction_Level"": r2[""Satisfaction_Level""],
+                    ""Age"": int(r2[""Age""]),
+                    ""Gender"": r2[""Gender""],
+                    ""City"": r2[""City""]
+                }
+            })
+
+pairs_sorted = sorted(
+    pairs,
+    key=lambda x: (x[""usage_difference_hours""], -x[""grade_impact_score_difference""])
+)
+
+factor_counts = {}
+for p in pairs_sorted:
+    for f in p[""potential_explanatory_factors""]:
+        factor_counts[f] = factor_counts.get(f, 0) + 1
+
+result = {
+    ""criteria"": {
+        ""similar_study_time_definition"": f""Daily_Usage_Hours difference <= {usage_tolerance}"",
+        ""significantly_different_performance_definition"": f""Impact_on_Grades score difference >= {score_diff_threshold}"",
+        ""impact_score_mapping"": impact_order
+    },
+    ""matching_student_pairs_count"": len(pairs_sorted),
+    ""student_pairs"": pairs_sorted,
+    ""most_common_potential_factors"": factor_counts,
+    ""summary"": (
+        ""Students were flagged when they had nearly the same Daily_Usage_Hours but notably different ""
+        ""Impact_on_Grades. Differences in Purpose, Satisfaction_Level, AI_Tool_Used, Education_Level, ""
+        ""Age, Gender, and City may help explain why similar AI study time is associated with different ""
+        ""academic outcomes.""
+    )
+}","There are \textbf{78 student pairs} with nearly the same study time (within 0.2 hours/day) but clearly different academic outcomes (at least a 2-point gap in grade-impact score).
+
+The factors that most often differ within these matched pairs are:
+- \textbf{Age}: 71 pairs
+- City: 64 pairs
+- AI tool used: 63 pairs
+- Purpose of use: 61 pairs
+- Education level: 51 pairs
+- Satisfaction level: 48 pairs
+- Gender: 43 pairs
+
+This suggests that similar study time alone does not explain performance differences. More likely explanations are:
+- students use AI for different purposes, such as learning/research versus writing/coding/homework
+- they rely on different AI tools
+- they differ in educational stage or maturity
+- their satisfaction with the tool varies, which may reflect how effectively they use it
+- local/contextual factors tied to city may also matter
+
+For example, one pair used exactly 4.2 hours/day, but one student reported grades “Improved” while the other reported “Slight Decline”; their main differences were purpose (learning vs coding), AI tool (ChatGPT vs Grammarly), and age (22 vs 25).
+
+Overall, the clearest takeaway is that \emph{how} students use AI seems more important than just \emph{how long} they use it.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer compares how frequently different factors appear as potential explanations across many matched student pairs. A bar chart would make the ranking and relative differences among factors much clearer than text alone."", ""data_focus"": ""Counts of most_common_potential_factors across the 78 matched student pairs: Age, City, AI_Tool_Used, Purpose, Education_Level, Satisfaction_Level, and Gender.""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+housing.csv,Identify areas with similar median income levels but significantly different median house value. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('housing.csv')
+
+# Create income bins to compare areas with similar median income
+df['income_bin'] = pd.qcut(df['median_income'], q=10, duplicates='drop')
+
+# Aggregate by income bin and ocean proximity to find groups with similar income but different house values
+grouped = (
+    df.groupby(['income_bin', 'ocean_proximity'], observed=False)
+      .agg(
+          median_income_mean=('median_income', 'mean'),
+          median_house_value_median=('median_house_value', 'median'),
+          housing_median_age_mean=('housing_median_age', 'mean'),
+          total_rooms_mean=('total_rooms', 'mean'),
+          total_bedrooms_mean=('total_bedrooms', 'mean'),
+          population_mean=('population', 'mean'),
+          households_mean=('households', 'mean'),
+          longitude_mean=('longitude', 'mean'),
+          latitude_mean=('latitude', 'mean'),
+          count=('median_house_value', 'size')
+      )
+      .reset_index()
+)
+
+# Keep only sufficiently large groups for stable comparisons
+grouped = grouped[grouped['count'] >= 20].copy()
+
+# Find within each income bin the biggest differences in median house value
+comparisons = []
+for income_bin, sub in grouped.groupby('income_bin', observed=False):
+    sub = sub.sort_values('median_house_value_median')
+    if len(sub) < 2:
+        continue
+    low = sub.iloc[0]
+    high = sub.iloc[-1]
+    diff = high['median_house_value_median'] - low['median_house_value_median']
+    comparisons.append({
+        'income_bin': str(income_bin),
+        'low_value_area': low['ocean_proximity'],
+        'high_value_area': high['ocean_proximity'],
+        'low_value_median_house_value': float(low['median_house_value_median']),
+        'high_value_median_house_value': float(high['median_house_value_median']),
+        'house_value_gap': float(diff),
+        'low_value_mean_income': float(low['median_income_mean']),
+        'high_value_mean_income': float(high['median_income_mean']),
+        'low_value_mean_age': float(low['housing_median_age_mean']),
+        'high_value_mean_age': float(high['housing_median_age_mean']),
+        'low_value_mean_latitude': float(low['latitude_mean']),
+        'high_value_mean_latitude': float(high['latitude_mean']),
+        'low_value_mean_longitude': float(low['longitude_mean']),
+        'high_value_mean_longitude': float(high['longitude_mean']),
+        'low_value_count': int(low['count']),
+        'high_value_count': int(high['count'])
+    })
+
+comp_df = pd.DataFrame(comparisons).sort_values('house_value_gap', ascending=False)
+
+top_pairs = comp_df.head(5).to_dict(orient='records')
+
+# Overall supporting evidence by ocean proximity controlling loosely for income
+ocean_summary = (
+    df.groupby('ocean_proximity', observed=False)
+      .agg(
+          median_income=('median_income', 'median'),
+          median_house_value=('median_house_value', 'median'),
+          housing_median_age=('housing_median_age', 'median'),
+          latitude=('latitude', 'median'),
+          longitude=('longitude', 'median'),
+          count=('median_house_value', 'size')
+      )
+      .reset_index()
+      .sort_values('median_house_value', ascending=False)
+)
+
+result = {
+    'similar_income_different_value_examples': top_pairs,
+    'ocean_proximity_summary': ocean_summary.to_dict(orient='records'),
+    'explanation': (
+        ""Areas with similar median income but very different median house values are most often separated by ""
+        ""location-related factors, especially ocean_proximity and geography. In this dataset, coastal or bay-adjacent ""
+        ""areas tend to have much higher median house values than inland areas even when median income is similar. ""
+        ""Likely explanations include premium access to the coast or bay, stronger demand in desirable locations, ""
+        ""limited housing supply in coastal markets, neighborhood amenities, commute access to major job centers, ""
+        ""and differences in housing age and local development patterns. The examples listed compare groups within ""
+        ""similar income bands and show where the largest house-value gaps appear.""
+    )
+}","Yes. The clearest pattern is that, within the same income range, \textbf{NEAR OCEAN} areas have much higher median house values than \textbf{INLAND} areas.
+
+Some of the biggest examples:
+
+- Income roughly 6.15–15.0:
+  - INLAND median house value: 273,800
+  - NEAR OCEAN median house value: 496,150
+  - Gap: \textbf{222,350}
+
+- Income roughly 4.42–5.10:
+  - INLAND: 157,600
+  - NEAR OCEAN: 282,950
+  - Gap: 125,350
+
+- Income roughly 3.93–4.42:
+  - INLAND: 138,500
+  - NEAR OCEAN: 259,800
+  - Gap: 121,300
+
+- Income roughly 5.10–6.15:
+  - INLAND: 198,200
+  - NEAR OCEAN: 318,450
+  - Gap: 120,250
+
+These differences are likely driven less by income and more by location effects:
+- coastal access creates a strong price premium
+- coastal areas often have tighter housing supply
+- they may be closer to desirable amenities and job centers
+- neighborhood desirability and views can raise prices
+- coastal homes in these examples also tend to be older, which may reflect established, high-demand communities
+
+Overall, similar-income households face very different housing prices depending on whether the area is inland or near the ocean, with location being the main explanation.","{""needed"": true, ""chart_type"": ""grouped_bar"", ""reason"": ""The answer compares median house values across matched income bins for two area types (INLAND vs NEAR OCEAN). A grouped bar chart would make the repeated value gaps and ranking of the largest differences much clearer than text alone."", ""data_focus"": ""Median house value by income_bin, grouped by low_value_area and high_value_area (especially INLAND vs NEAR OCEAN), with emphasis on the house_value_gap for each matched income range.""}",visualizations/housing_identify_areas_with_similar_median_income_levels_but_signifi.html,
+housing.csv,Identify areas with similar median income levels but significantly different median house value. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('housing.csv')
+
+# Create income bands to identify areas with similar median income
+income_band_width = 0.5
+df['income_band'] = (df['median_income'] / income_band_width).round() * income_band_width
+
+# Aggregate by income band and ocean proximity to compare house values within similar income levels
+grouped = (
+    df.groupby(['income_band', 'ocean_proximity'])
+    .agg(
+        count=('median_house_value', 'size'),
+        median_income_mean=('median_income', 'mean'),
+        median_house_value_median=('median_house_value', 'median'),
+        housing_median_age_mean=('housing_median_age', 'mean'),
+        latitude_mean=('latitude', 'mean'),
+        longitude_mean=('longitude', 'mean'),
+        total_rooms_mean=('total_rooms', 'mean'),
+        population_mean=('population', 'mean')
+    )
+    .reset_index()
+)
+
+# Focus on groups with enough observations
+grouped = grouped[grouped['count'] >= 30].copy()
+
+# Find income bands where house values differ substantially across areas
+band_ranges = (
+    grouped.groupby('income_band')
+    .agg(
+        groups=('ocean_proximity', 'nunique'),
+        min_house_value=('median_house_value_median', 'min'),
+        max_house_value=('median_house_value_median', 'max')
+    )
+    .reset_index()
+)
+band_ranges['house_value_gap'] = band_ranges['max_house_value'] - band_ranges['min_house_value']
+
+# Keep only bands with multiple area types and substantial differences
+candidate_bands = band_ranges[(band_ranges['groups'] >= 2)].sort_values('house_value_gap', ascending=False)
+
+top_bands = candidate_bands.head(5)['income_band'].tolist()
+comparisons = grouped[grouped['income_band'].isin(top_bands)].sort_values(
+    ['income_band', 'median_house_value_median'], ascending=[True, False]
+)
+
+comparison_records = []
+for band in top_bands:
+    sub = comparisons[comparisons['income_band'] == band].copy()
+    if len(sub) < 2:
+        continue
+    highest = sub.iloc[0]
+    lowest = sub.iloc[-1]
+    comparison_records.append({
+        'income_band': float(band),
+        'higher_value_area': {
+            'ocean_proximity': str(highest['ocean_proximity']),
+            'median_income_mean': round(float(highest['median_income_mean']), 3),
+            'median_house_value_median': float(highest['median_house_value_median']),
+            'housing_median_age_mean': round(float(highest['housing_median_age_mean']), 2),
+            'avg_location': {
+                'latitude': round(float(highest['latitude_mean']), 3),
+                'longitude': round(float(highest['longitude_mean']), 3),
+            },
+            'avg_total_rooms': round(float(highest['total_rooms_mean']), 1),
+            'avg_population': round(float(highest['population_mean']), 1),
+            'count': int(highest['count'])
+        },
+        'lower_value_area': {
+            'ocean_proximity': str(lowest['ocean_proximity']),
+            'median_income_mean': round(float(lowest['median_income_mean']), 3),
+            'median_house_value_median': float(lowest['median_house_value_median']),
+            'housing_median_age_mean': round(float(lowest['housing_median_age_mean']), 2),
+            'avg_location': {
+                'latitude': round(float(lowest['latitude_mean']), 3),
+                'longitude': round(float(lowest['longitude_mean']), 3),
+            },
+            'avg_total_rooms': round(float(lowest['total_rooms_mean']), 1),
+            'avg_population': round(float(lowest['population_mean']), 1),
+            'count': int(lowest['count'])
+        },
+        'house_value_gap': float(highest['median_house_value_median'] - lowest['median_house_value_median'])
+    })
+
+result = {
+    'similar_income_different_house_value': comparison_records,
+    'possible_explanations': [
+        'Ocean proximity appears to be a major factor: areas NEAR BAY or NEAR OCEAN often have much higher median house values than INLAND or <1H OCEAN areas even when median_income is similar.',
+        'Location desirability likely matters beyond income alone. Latitude/longitude differences suggest that some areas are closer to premium coastal or bay markets.',
+        'Housing age may contribute: older neighborhoods in established high-demand coastal locations can command higher prices.',
+        'Population density and housing stock differences may matter. Variations in total_rooms and population suggest different neighborhood structure, crowding, and home sizes.',
+        'Unobserved factors not in the dataset—such as school quality, commute access, local amenities, and zoning—could also explain why areas with similar incomes have very different house values.'
+    ]
+}","Yes—there are clear cases where areas have similar median incomes but very different home values.
+
+The strongest pattern is that coastal and bay-adjacent areas are much more expensive than inland areas at the same income level:
+
+- At income band **6.0**, NEAR OCEAN areas have a median house value of about **$378,100** versus **$225,000** inland — a gap of **$153,100**.
+- At income band **5.0**, NEAR OCEAN areas are about **$302,250** versus **$163,400** inland — a gap of **$138,850**.
+- At income band **6.5**, NEAR BAY areas are about **$368,600** versus **$237,450** inland — a gap of **$131,150**.
+- Similar gaps also appear at income bands 4.5 and 4.0, both with coastal areas far above inland ones.
+
+What likely explains this:
+- \textbf{Ocean or bay proximity} is the biggest factor; waterfront or near-water locations tend to carry a strong price premium.
+- \textbf{Location desirability} matters beyond income, especially access to premium coastal markets.
+- \textbf{Older, established neighborhoods} in coastal areas may command higher values despite similar incomes.
+- Differences in \textbf{housing stock and neighborhood structure}—such as room counts, population, and density—may also affect prices.
+- Other unobserved factors like \textbf{schools, commuting access, amenities, and zoning} could further widen the gap.
+
+In short, similar-income households can face very different housing prices primarily because of \textbf{location premium}, especially near the ocean or bay.","{""needed"": true, ""chart_type"": ""grouped_bar"", ""reason"": ""The answer compares median house values across multiple income bands between higher-value coastal/bay areas and lower-value inland areas. A grouped bar chart would make the size and consistency of these value gaps much clearer than text alone."", ""data_focus"": ""Median house value by income band, split into higher-value ocean/bay proximity areas versus lower-value inland areas, highlighting the house value gap for each matched income band.""}",visualizations/housing_identify_areas_with_similar_median_income_levels_but_signifi.html,
+housing.csv,Find coastal areas where house prices are relatively low despite proximity to the ocean. What factors might explain this?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+coastal = df[df[""ocean_proximity""].isin([""NEAR OCEAN"", ""<1H OCEAN"", ""NEAR BAY""])].copy()
+
+coastal[""bedrooms_per_room""] = coastal[""total_bedrooms""] / coastal[""total_rooms""]
+coastal[""rooms_per_household""] = coastal[""total_rooms""] / coastal[""households""]
+coastal[""population_per_household""] = coastal[""population""] / coastal[""households""]
+
+group_cols = [""ocean_proximity"", ""latitude"", ""longitude""]
+area_summary = (
+    coastal.groupby(group_cols, dropna=False)
+    .agg(
+        median_house_value=(""median_house_value"", ""median""),
+        median_income=(""median_income"", ""median""),
+        housing_median_age=(""housing_median_age"", ""median""),
+        population=(""population"", ""median""),
+        households=(""households"", ""median""),
+        total_rooms=(""total_rooms"", ""median""),
+        bedrooms_per_room=(""bedrooms_per_room"", ""median""),
+        rooms_per_household=(""rooms_per_household"", ""median""),
+        population_per_household=(""population_per_household"", ""median""),
+        listings=(""median_house_value"", ""size""),
+    )
+    .reset_index()
+)
+
+coastal_price_median = coastal[""median_house_value""].median()
+coastal_income_median = coastal[""median_income""].median()
+coastal_popph_median = coastal[""population""].median() / coastal[""households""].median()
+coastal_bpr_median = (coastal[""total_bedrooms""] / coastal[""total_rooms""]).median()
+coastal_rph_median = (coastal[""total_rooms""] / coastal[""households""]).median()
+coastal_age_median = coastal[""housing_median_age""].median()
+
+low_price_areas = area_summary[area_summary[""median_house_value""] < coastal_price_median].copy()
+low_price_areas[""price_discount_vs_coastal_median""] = coastal_price_median - low_price_areas[""median_house_value""]
+
+low_price_areas = low_price_areas.sort_values(
+    [""price_discount_vs_coastal_median"", ""median_income""], ascending=[False, True]
+)
+
+top_areas = low_price_areas.head(10).copy()
+
+def explain_factors(row):
+    factors = []
+    if row[""median_income""] < coastal_income_median:
+        factors.append(""lower median income"")
+    if row[""population_per_household""] > coastal_popph_median:
+        factors.append(""higher crowding/population per household"")
+    if pd.notna(row[""bedrooms_per_room""]) and row[""bedrooms_per_room""] > coastal_bpr_median:
+        factors.append(""higher bedrooms-per-room ratio, suggesting smaller/denser units"")
+    if pd.notna(row[""rooms_per_household""]) and row[""rooms_per_household""] < coastal_rph_median:
+        factors.append(""fewer rooms per household"")
+    if row[""housing_median_age""] < coastal_age_median:
+        factors.append(""relatively newer housing stock"")
+    if not factors:
+        factors.append(""prices are low relative to other coastal areas, but local housing and demographic metrics are near coastal medians"")
+    return factors
+
+top_areas[""possible_factors""] = top_areas.apply(explain_factors, axis=1)
+
+result = {
+    ""coastal_median_house_value"": float(coastal_price_median),
+    ""coastal_median_income"": float(coastal_income_median),
+    ""identified_low_price_coastal_areas"": top_areas[
+        [
+            ""ocean_proximity"",
+            ""latitude"",
+            ""longitude"",
+            ""median_house_value"",
+            ""price_discount_vs_coastal_median"",
+            ""median_income"",
+            ""housing_median_age"",
+            ""population"",
+            ""households"",
+            ""rooms_per_household"",
+            ""population_per_household"",
+            ""bedrooms_per_room"",
+            ""listings"",
+            ""possible_factors"",
+        ]
+    ].to_dict(orient=""records""),
+    ""summary"": ""Low-priced coastal areas were identified as coastal locations with median house values below the overall coastal median. Likely explanations are inferred by comparing each area's income, crowding, unit size, and housing age to coastal medians.""
+}","Several coastal locations stand out as unusually inexpensive relative to the overall coastal median house value of \textbf{\$219,450}.
+
+The cheapest examples include:
+- NEAR OCEAN at (34.70, -120.59): \textbf{\$28,300}
+- NEAR BAY at (37.78, -122.41): \$32,500
+- NEAR OCEAN at (34.40, -119.85): \$37,500
+- NEAR BAY at (37.93, -122.37): \$37,900
+- NEAR OCEAN at (35.34, -120.69): \$42,500
+
+These are discounted by roughly \$170k–\$191k versus the coastal median.
+
+What seems to explain the low prices:
+- \textbf{Lower incomes}: many of these areas have median incomes well below the coastal median income of 3.79, often around 1.7–2.8.
+- Higher crowding: several places have high population per household, suggesting denser living conditions.
+- Smaller or denser housing units: some areas have fewer rooms per household and/or higher bedrooms-per-room ratios.
+- In a few cases, newer housing stock may also matter, which can indicate less established or less desirable neighborhoods depending on location.
+
+In short, these are coastal-adjacent places where ocean access does not translate into high prices because local socioeconomic conditions and housing density appear less favorable than in typical coastal markets.","{""needed"": true, ""chart_type"": ""map"", ""reason"": ""The question asks to find coastal areas with relatively low prices despite ocean proximity, which is fundamentally geographic. A map would make the locations and clusters of discounted coastal areas much clearer, while also helping compare how price discounts vary by place."", ""data_focus"": ""Plot the identified low-price coastal areas by latitude/longitude, colored by median_house_value or price_discount_vs_coastal_median, with labels or tooltips for ocean_proximity and possible_factors.""}",visualizations/housing_find_coastal_areas_where_house_prices_are_relatively_low_des.html,
+housing.csv,Find coastal areas where house prices are relatively low despite proximity to the ocean. What factors might explain this?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+coastal = df[df[""ocean_proximity""].isin([""NEAR OCEAN"", ""<1H OCEAN"", ""NEAR BAY"", ""ISLAND""])].copy()
+
+coastal[""rooms_per_household""] = coastal[""total_rooms""] / coastal[""households""].replace(0, np.nan)
+coastal[""bedrooms_per_room""] = coastal[""total_bedrooms""] / coastal[""total_rooms""].replace(0, np.nan)
+coastal[""population_per_household""] = coastal[""population""] / coastal[""households""].replace(0, np.nan)
+
+overall_coastal_median = float(coastal[""median_house_value""].median())
+by_proximity = (
+    coastal.groupby(""ocean_proximity"", dropna=False)
+    .agg(
+        count=(""median_house_value"", ""size""),
+        median_house_value=(""median_house_value"", ""median""),
+        mean_house_value=(""median_house_value"", ""mean""),
+        median_income=(""median_income"", ""median""),
+        median_age=(""housing_median_age"", ""median""),
+        population_per_household=(""population_per_household"", ""median""),
+        bedrooms_per_room=(""bedrooms_per_room"", ""median""),
+    )
+    .reset_index()
+)
+
+low_cost_areas = by_proximity[by_proximity[""median_house_value""] < overall_coastal_median].copy()
+low_cost_areas[""price_gap_vs_coastal_median""] = low_cost_areas[""median_house_value""] - overall_coastal_median
+low_cost_areas = low_cost_areas.sort_values(""median_house_value"")
+
+overall_stats = {
+    ""overall_coastal_median_house_value"": overall_coastal_median,
+    ""overall_coastal_median_income"": float(coastal[""median_income""].median()),
+    ""overall_coastal_median_age"": float(coastal[""housing_median_age""].median()),
+    ""overall_coastal_population_per_household"": float(coastal[""population_per_household""].median()),
+    ""overall_coastal_bedrooms_per_room"": float(coastal[""bedrooms_per_room""].median()),
+}
+
+factors = []
+for _, row in low_cost_areas.iterrows():
+    area_factors = []
+    if row[""median_income""] < overall_stats[""overall_coastal_median_income""]:
+        area_factors.append(""lower median income"")
+    if row[""population_per_household""] > overall_stats[""overall_coastal_population_per_household""]:
+        area_factors.append(""higher household crowding/population density"")
+    if row[""bedrooms_per_room""] > overall_stats[""overall_coastal_bedrooms_per_room""]:
+        area_factors.append(""housing stock may be more cramped or lower quality"")
+    if row[""median_age""] < overall_stats[""overall_coastal_median_age""]:
+        area_factors.append(""newer/less established housing stock"")
+    if not area_factors:
+        area_factors.append(""prices may reflect local market conditions not captured fully by this dataset"")
+    factors.append(
+        {
+            ""ocean_proximity"": row[""ocean_proximity""],
+            ""likely_explanations"": area_factors,
+        }
+    )
+
+result = {
+    ""coastal_areas_with_relatively_low_prices"": low_cost_areas[
+        [
+            ""ocean_proximity"",
+            ""count"",
+            ""median_house_value"",
+            ""mean_house_value"",
+            ""median_income"",
+            ""median_age"",
+            ""population_per_household"",
+            ""bedrooms_per_room"",
+            ""price_gap_vs_coastal_median"",
+        ]
+    ].to_dict(orient=""records""),
+    ""overall_coastal_benchmark"": overall_stats,
+    ""interpretation"": factors,
+}","The main coastal segment with relatively low prices is \textbf{“<1H OCEAN”}.
+
+Its median house value is about \textbf{\$213,600}, which is roughly \textbf{\$5,900 below} the overall coastal median of \$219,500.
+
+Possible reasons:
+- Slightly higher crowding: population per household is about 2.94 vs. 2.81 for coastal areas overall.
+- Housing may be somewhat more cramped or lower quality: bedrooms-per-room is very slightly higher.
+- Slightly newer or less established housing stock: median housing age is 30 vs. 31 overall.
+
+Income does not appear to be the issue here, since median income in this group (\$3.83 in dataset units) is actually a bit higher than the coastal benchmark (\$3.79).
+
+So, the best explanation is that some near-coastal areas remain relatively affordable not because they are far from the ocean, but because they may be denser, a bit more crowded, or have less desirable housing stock.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result identifies only one coastal category with relatively low prices and explains it with a few benchmark comparisons. A chart would add little value because there is no multi-category ranking, trend, or distribution to visualize."", ""data_focus"": ""Single identified segment '<1H OCEAN' versus overall coastal benchmark on median house value and a few housing characteristics.""}",,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+impact_rank = {
+    'Significant Decline': 1,
+    'Slight Decline': 2,
+    'No Change': 3,
+    'Improved': 4,
+    'Significantly Improved': 5
+}
+
+df = df.copy()
+df['Impact_Score'] = df['Impact_on_Grades'].map(impact_rank)
+
+# Compare students with very similar study/usage time by grouping into narrow bins
+bin_width = 0.5
+df['Usage_Bin_Start'] = (np.floor(df['Daily_Usage_Hours'] / bin_width) * bin_width).round(1)
+df['Usage_Bin'] = df['Usage_Bin_Start'].astype(str) + '-' + (df['Usage_Bin_Start'] + bin_width).round(1).astype(str)
+
+pairs = []
+for usage_bin, group in df.groupby('Usage_Bin'):
+    group = group.sort_values('Impact_Score')
+    if len(group) < 2:
+        continue
+    min_score = group['Impact_Score'].min()
+    max_score = group['Impact_Score'].max()
+    if pd.notna(min_score) and pd.notna(max_score) and (max_score - min_score) >= 2:
+        low_students = group[group['Impact_Score'] == min_score]
+        high_students = group[group['Impact_Score'] == max_score]
+        for _, low_row in low_students.iterrows():
+            for _, high_row in high_students.iterrows():
+                differing_factors = {}
+                for col in ['Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Education_Level', 'City', 'Gender', 'Age']:
+                    if low_row[col] != high_row[col]:
+                        differing_factors[col] = {
+                            'lower_performance_student': low_row[col],
+                            'higher_performance_student': high_row[col]
+                        }
+                pairs.append({
+                    'usage_bin': usage_bin,
+                    'lower_performance_student': {
+                        'Student_ID': int(low_row['Student_ID']),
+                        'Daily_Usage_Hours': float(low_row['Daily_Usage_Hours']),
+                        'Impact_on_Grades': low_row['Impact_on_Grades'],
+                        'Purpose': low_row['Purpose'],
+                        'AI_Tool_Used': low_row['AI_Tool_Used'],
+                        'Satisfaction_Level': low_row['Satisfaction_Level'],
+                        'Education_Level': low_row['Education_Level'],
+                        'City': low_row['City'],
+                        'Gender': low_row['Gender'],
+                        'Age': int(low_row['Age'])
+                    },
+                    'higher_performance_student': {
+                        'Student_ID': int(high_row['Student_ID']),
+                        'Daily_Usage_Hours': float(high_row['Daily_Usage_Hours']),
+                        'Impact_on_Grades': high_row['Impact_on_Grades'],
+                        'Purpose': high_row['Purpose'],
+                        'AI_Tool_Used': high_row['AI_Tool_Used'],
+                        'Satisfaction_Level': high_row['Satisfaction_Level'],
+                        'Education_Level': high_row['Education_Level'],
+                        'City': high_row['City'],
+                        'Gender': high_row['Gender'],
+                        'Age': int(high_row['Age'])
+                    },
+                    'possible_explanatory_factors': differing_factors
+                })
+
+# Summarize which factors most often differ across matched pairs
+factor_counts = {}
+for p in pairs:
+    for factor in p['possible_explanatory_factors']:
+        factor_counts[factor] = factor_counts.get(factor, 0) + 1
+
+factor_counts = dict(sorted(factor_counts.items(), key=lambda x: (-x[1], x[0])))
+
+result = {
+    'matched_students_with_similar_study_time_but_different_performance': pairs,
+    'most_common_possible_explanatory_factors': factor_counts,
+    'interpretation': (
+        ""Students were matched within 0.5-hour Daily_Usage_Hours bins and flagged when their ""
+        ""Impact_on_Grades differed substantially. Likely explanations come from differences in ""
+        ""Purpose, AI_Tool_Used, Satisfaction_Level, Education_Level, City, Gender, and Age among ""
+        ""students using AI for similar amounts of time.""
+    )
+}","Students with similar study time but very different grade outcomes appear across nearly every usage band, from under 1 hour to nearly 6 hours per day. The clearest pattern is that \textbf{time spent alone does not explain performance differences}.
+
+The most common factors that differ between matched students are:
+- \textbf{Age} (97 matches)
+- \textbf{AI tool used} (90)
+- \textbf{Purpose of use} (87)
+- \textbf{City} (87)
+- Education level (71)
+- Satisfaction level (71)
+- Gender (52)
+
+A few illustrative examples:
+- Around 0.7–0.8 hours/day, Student 1 had a slight decline while Students 13, 38, 52, 57, and 81 improved. The main differences were purpose of use (writing vs coding/learning), tool used, satisfaction, and education level.
+- Around 3.0–3.4 hours/day, students with slight decline were often using AI for homework, learning, or writing, while matched higher-performing students were more often using it for research or coding.
+- Around 5.0–5.2 hours/day, students with decline commonly used Grammarly, while matched students with improvement often used ChatGPT or Gemini and reported higher satisfaction.
+
+What might explain the differences:
+- Students may be using AI for different academic tasks; using it for coding, research, or structured learning may be more beneficial than using it mainly for writing or routine homework.
+- The effectiveness of the \emph{tool itself} may differ by task.
+- Higher satisfaction could reflect better integration of AI into study habits.
+- Education level and age may affect how strategically students use AI.
+- City and gender differences likely reflect background or contextual differences rather than direct causes.
+
+Overall, students with the same amount of AI-assisted study time can perform very differently depending on \textbf{how they use AI, which tool they use, and how effectively it fits their learning context}.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer compares how often different explanatory factors appear across many matched student pairs. A bar chart would make the ranking and relative frequency of factors much clearer than text alone."", ""data_focus"": ""Counts of the most common possible explanatory factors (Age, AI_Tool_Used, Purpose, City, Education_Level, Satisfaction_Level, Gender) across matched students with similar study time but different performance.""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,what about only top 2 - 4?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+prior_matches = prior_turn.get(""execution_result"", {}).get(
+    ""matched_students_with_similar_study_time_but_different_performance"", []
+)
+
+target_bins = {""2.0-2.5"", ""2.5-3.0"", ""3.0-3.5"", ""3.5-4.0""}
+
+filtered_matches = [
+    match for match in prior_matches
+    if match.get(""usage_bin"") in target_bins
+]
+
+factor_counts = {}
+for match in filtered_matches:
+    for factor in match.get(""possible_explanatory_factors"", {}):
+        factor_counts[factor] = factor_counts.get(factor, 0) + 1
+
+bin_counts = {}
+for match in filtered_matches:
+    b = match.get(""usage_bin"")
+    bin_counts[b] = bin_counts.get(b, 0) + 1
+
+result = {
+    ""top_2_to_4_daily_usage_hours_range_matches"": filtered_matches,
+    ""summary"": {
+        ""usage_bins_included"": sorted(target_bins),
+        ""total_matches"": len(filtered_matches),
+        ""matches_by_usage_bin"": dict(sorted(bin_counts.items())),
+        ""most_common_possible_explanatory_factors"": dict(
+            sorted(factor_counts.items(), key=lambda x: (-x[1], x[0]))
+        )
+    },
+    ""interpretation"": (
+        ""Restricting the earlier matched-student analysis to the 2 to 4 Daily_Usage_Hours range ""
+        ""keeps only the 2.0-2.5, 2.5-3.0, 3.0-3.5, and 3.5-4.0 bins. These are the previously ""
+        ""identified student pairs with similar AI usage time but substantially different ""
+        ""Impact_on_Grades outcomes.""
+    )
+}","Yes—when restricting the matched-student comparison to the **2 to 4 Daily_Usage_Hours** range, there are \textbf{45 matched cases} in total.
+
+Breakdown by usage bin:
+- 2.0–2.5 hours: 6 matches
+- 2.5–3.0 hours: 1 match
+- \textbf{3.0–3.5 hours: 30 matches}
+- 3.5–4.0 hours: 8 matches
+
+So the biggest concentration of “similar usage time but different grade impact” occurs in the \textbf{3.0–3.5 hour} range.
+
+Across these matches, the most frequently differing factors were:
+- Age: 40 cases
+- AI tool used: 37
+- City: 37
+- Purpose of use: 35
+- Satisfaction level: 31
+- Education level: 30
+- Gender: 27
+
+In short, narrowing to higher daily usage still shows many students with similar AI usage time but very different academic outcomes, especially around 3 to 3.5 hours/day, with differences often coinciding with age, tool choice, usage purpose, and satisfaction.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer highlights comparisons across usage bins and ranks the most common differing factors. A bar chart would make the concentration of matches in the 3.0–3.5 hour range and the relative frequency of explanatory factors much clearer than text alone."", ""data_focus"": ""Matches by Daily_Usage_Hours bin (2.0–2.5, 2.5–3.0, 3.0–3.5, 3.5–4.0) and optionally the ranked counts of most common possible explanatory factors (Age, AI_Tool_Used, City, Purpose, Satisfaction_Level, Education_Level, Gender).""}",,"Traceback (most recent call last):
+  File ""/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/nodes.py"", line 409, in execute_visualization_code_node
+    exec(code, env)
+    ~~~~^^^^^^^^^^^
+  File ""<string>"", line 91, in <module>
+  File ""/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/.venv/lib/python3.13/site-packages/plotly/graph_objs/_figure.py"", line 23512, in update_xaxes
+    obj.update(patch, overwrite=overwrite, **kwargs)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/.venv/lib/python3.13/site-packages/plotly/basedatatypes.py"", line 5195, in update
+    BaseFigure._perform_update(self, kwargs, overwrite=overwrite)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/.venv/lib/python3.13/site-packages/plotly/basedatatypes.py"", line 3949, in _perform_update
+    raise err
+ValueError: Invalid property specified for object of type plotly.graph_objs.layout.XAxis: 'xaxis'
+
+Did you mean ""layer""?
+
+    Valid properties:
+        anchor
+            If set to an opposite-letter axis id (e.g. `x2`, `y`),
+            this axis is bound to the corresponding opposite-letter
+            axis. If set to ""free"", this axis' position is
+            determined by `position`.
+        automargin
+            Determines whether long tick labels automatically grow
+            the figure margins.
+        autorange
+            Determines whether or not the range of this axis is
+            computed in relation to the input data. See `rangemode`
+            for more info. If `range` is provided and it has a
+            value for both the lower and upper bound, `autorange`
+            is set to False. Using ""min"" applies autorange only to
+            set the minimum. Using ""max"" applies autorange only to
+            set the maximum. Using *min reversed* applies autorange
+            only to set the minimum on a reversed axis. Using *max
+            reversed* applies autorange only to set the maximum on
+            a reversed axis. Using ""reversed"" applies autorange on
+            both ends and reverses the axis direction.
+        autorangeoptions
+            :class:`plotly.graph_objects.layout.xaxis.Autorangeopti
+            ons` instance or dict with compatible properties
+        autotickangles
+            When `tickangle` is set to ""auto"", it will be set to
+            the first angle in this array that is large enough to
+            prevent label overlap.
+        autotypenumbers
+            Using ""strict"" a numeric string in trace data is not
+            converted to a number. Using *convert types* a numeric
+            string in trace data may be treated as a number during
+            automatic axis `type` detection. Defaults to
+            layout.autotypenumbers.
+        calendar
+            Sets the calendar system to use for `range` and `tick0`
+            if this is a date axis. This does not set the calendar
+            for interpreting data on this axis, that's specified in
+            the trace or via the global `layout.calendar`
+        categoryarray
+            Sets the order in which categories on this axis appear.
+            Only has an effect if `categoryorder` is set to
+            ""array"". Used with `categoryorder`.
+        categoryarraysrc
+            Sets the source reference on Chart Studio Cloud for
+            `categoryarray`.
+        categoryorder
+            Specifies the ordering logic for the case of
+            categorical variables. By default, plotly uses ""trace"",
+            which specifies the order that is present in the data
+            supplied. Set `categoryorder` to *category ascending*
+            or *category descending* if order should be determined
+            by the alphanumerical order of the category names. Set
+            `categoryorder` to ""array"" to derive the ordering from
+            the attribute `categoryarray`. If a category is not
+            found in the `categoryarray` array, the sorting
+            behavior for that attribute will be identical to the
+            ""trace"" mode. The unspecified categories will follow
+            the categories in `categoryarray`. Set `categoryorder`
+            to *total ascending* or *total descending* if order
+            should be determined by the numerical order of the
+            values. Similarly, the order can be determined by the
+            min, max, sum, mean, geometric mean or median of all
+            the values.
+        color
+            Sets default for all colors associated with this axis
+            all at once: line, font, tick, and grid colors. Grid
+            color is lightened by blending this with the plot
+            background Individual pieces can override this.
+        constrain
+            If this axis needs to be compressed (either due to its
+            own `scaleanchor` and `scaleratio` or those of the
+            other axis), determines how that happens: by increasing
+            the ""range"", or by decreasing the ""domain"". Default is
+            ""domain"" for axes containing image traces, ""range""
+            otherwise.
+        constraintoward
+            If this axis needs to be compressed (either due to its
+            own `scaleanchor` and `scaleratio` or those of the
+            other axis), determines which direction we push the
+            originally specified plot area. Options are ""left"",
+            ""center"" (default), and ""right"" for x axes, and ""top"",
+            ""middle"" (default), and ""bottom"" for y axes.
+        dividercolor
+            Sets the color of the dividers Only has an effect on
+            ""multicategory"" axes.
+        dividerwidth
+            Sets the width (in px) of the dividers Only has an
+            effect on ""multicategory"" axes.
+        domain
+            Sets the domain of this axis (in plot fraction).
+        dtick
+            Sets the step in-between ticks on this axis. Use with
+            `tick0`. Must be a positive number, or special strings
+            available to ""log"" and ""date"" axes. If the axis `type`
+            is ""log"", then ticks are set every 10^(n*dtick) where n
+            is the tick number. For example, to set a tick mark at
+            1, 10, 100, 1000, ... set dtick to 1. To set tick marks
+            at 1, 100, 10000, ... set dtick to 2. To set tick marks
+            at 1, 5, 25, 125, 625, 3125, ... set dtick to
+            log_10(5), or 0.69897000433. ""log"" has several special
+            values; ""L<f>"", where `f` is a positive number, gives
+            ticks linearly spaced in value (but not position). For
+            example `tick0` = 0.1, `dtick` = ""L0.5"" will put ticks
+            at 0.1, 0.6, 1.1, 1.6 etc. To show powers of 10 plus
+            small digits between, use ""D1"" (all digits) or ""D2""
+            (only 2 and 5). `tick0` is ignored for ""D1"" and ""D2"".
+            If the axis `type` is ""date"", then you must convert the
+            time to milliseconds. For example, to set the interval
+            between ticks to one day, set `dtick` to 86400000.0.
+            ""date"" also has special values ""M<n>"" gives ticks
+            spaced by a number of months. `n` must be a positive
+            integer. To set ticks on the 15th of every third month,
+            set `tick0` to ""2000-01-15"" and `dtick` to ""M3"". To set
+            ticks every 4 years, set `dtick` to ""M48""
+        exponentformat
+            Determines a formatting rule for the tick exponents.
+            For example, consider the number 1,000,000,000. If
+            ""none"", it appears as 1,000,000,000. If ""e"", 1e+9. If
+            ""E"", 1E+9. If ""power"", 1x10^9 (with 9 in a super
+            script). If ""SI"", 1G. If ""B"", 1B. ""SI"" uses prefixes
+            from ""femto"" f (10^-15) to ""tera"" T (10^12). *SI
+            extended* covers instead the full SI range from
+            ""quecto"" q (10^-30) to ""quetta"" Q (10^30). If ""SI"" or
+            *SI extended* is used and the exponent is beyond the
+            above ranges, the formatting rule will automatically be
+            switched to the power notation.
+        fixedrange
+            Determines whether or not this axis is zoom-able. If
+            true, then zoom is disabled.
+        gridcolor
+            Sets the color of the grid lines.
+        griddash
+            Sets the dash style of lines. Set to a dash type string
+            (""solid"", ""dot"", ""dash"", ""longdash"", ""dashdot"", or
+            ""longdashdot"") or a dash length list in px (eg
+            ""5px,10px,2px,2px"").
+        gridwidth
+            Sets the width (in px) of the grid lines.
+        hoverformat
+            Sets the hover text formatting rule using d3 formatting
+            mini-languages which are very similar to those in
+            Python. For numbers, see:
+            https://github.com/d3/d3-format/tree/v1.4.5#d3-format.
+            And for dates see: https://github.com/d3/d3-time-
+            format/tree/v2.2.3#locale_format. We add two items to
+            d3's date formatter: ""%h"" for half of the year as a
+            decimal number as well as ""%{n}f"" for fractional
+            seconds with n digits. For example, *2016-10-13
+            09:15:23.456* with tickformat ""%H~%M~%S.%2f"" would
+            display ""09~15~23.46""
+        insiderange
+            Could be used to set the desired inside range of this
+            axis (excluding the labels) when `ticklabelposition` of
+            the anchored axis has ""inside"". Not implemented for
+            axes with `type` ""log"". This would be ignored when
+            `range` is provided.
+        labelalias
+            Replacement text for specific tick or hover labels. For
+            example using {US: 'USA', CA: 'Canada'} changes US to
+            USA and CA to Canada. The labels we would have shown
+            must match the keys exactly, after adding any
+            tickprefix or ticksuffix. For negative numbers the
+            minus sign symbol used (U+2212) is wider than the
+            regular ascii dash. That means you need to use −1
+            instead of -1. labelalias can be used with any axis
+            type, and both keys (if needed) and values (if desired)
+            can include html-like tags or MathJax.
+        layer
+            Sets the layer on which this axis is displayed. If
+            *above traces*, this axis is displayed above all the
+            subplot's traces If *below traces*, this axis is
+            displayed below all the subplot's traces, but above the
+            grid lines. Useful when used together with scatter-like
+            traces with `cliponaxis` set to False to show markers
+            and/or text nodes above this axis.
+        linecolor
+            Sets the axis line color.
+        linewidth
+            Sets the width (in px) of the axis line.
+        matches
+            If set to another axis id (e.g. `x2`, `y`), the range
+            of this axis will match the range of the corresponding
+            axis in data-coordinates space. Moreover, matching axes
+            share auto-range values, category lists and histogram
+            auto-bins. Note that setting axes simultaneously in
+            both a `scaleanchor` and a `matches` constraint is
+            currently forbidden. Moreover, note that matching axes
+            must have the same `type`.
+        maxallowed
+            Determines the maximum range of this axis.
+        minallowed
+            Determines the minimum range of this axis.
+        minexponent
+            Hide SI prefix for 10^n if |n| is below this number.
+            This only has an effect when `tickformat` is ""SI"" or
+            ""B"".
+        minor
+            :class:`plotly.graph_objects.layout.xaxis.Minor`
+            instance or dict with compatible properties
+        minorloglabels
+            Determines how minor log labels are displayed. If
+            *small digits*, small digits i.e. 2 or 5 are displayed.
+            If ""complete"", complete digits are displayed. If
+            ""none"", no labels are displayed.
+        mirror
+            Determines if the axis lines or/and ticks are mirrored
+            to the opposite side of the plotting area. If True, the
+            axis lines are mirrored. If ""ticks"", the axis lines and
+            ticks are mirrored. If False, mirroring is disable. If
+            ""all"", axis lines are mirrored on all shared-axes
+            subplots. If ""allticks"", axis lines and ticks are
+            mirrored on all shared-axes subplots.
+        modebardisable
+            Disables certain modebar buttons for this axis.
+            ""autoscale"" disables the autoscale buttons, ""zoominout""
+            disables the zoom-in and zoom-out buttons.
+        nticks
+            Specifies the maximum number of ticks for the
+            particular axis. The actual number of ticks will be
+            chosen automatically to be less than or equal to
+            `nticks`. Has an effect only if `tickmode` is set to
+            ""auto"".
+        overlaying
+            If set a same-letter axis id, this axis is overlaid on
+            top of the corresponding same-letter axis, with traces
+            and axes visible for both axes. If False, this axis
+            does not overlay any same-letter axes. In this case,
+            for axes with overlapping domains only the highest-
+            numbered axis will be visible.
+        position
+            Sets the position of this axis in the plotting space
+            (in normalized coordinates). Only has an effect if
+            `anchor` is set to ""free"".
+        range
+            Sets the range of this axis. If the axis `type` is
+            ""log"", then you must take the log of your desired range
+            (e.g. to set the range from 1 to 100, set the range
+            from 0 to 2). If the axis `type` is ""date"", it should
+            be date strings, like date data, though Date objects
+            and unix milliseconds will be accepted and converted to
+            strings. If the axis `type` is ""category"", it should be
+            numbers, using the scale where each category is
+            assigned a serial number from zero in the order it
+            appears. Leaving either or both elements `null` impacts
+            the default `autorange`.
+        rangebreaks
+            A tuple of
+            :class:`plotly.graph_objects.layout.xaxis.Rangebreak`
+            instances or dicts with compatible properties
+        rangebreakdefaults
+            When used in a template (as
+            layout.template.layout.xaxis.rangebreakdefaults), sets
+            the default property values to use for elements of
+            layout.xaxis.rangebreaks
+        rangemode
+            If ""normal"", the range is computed in relation to the
+            extrema of the input data. If ""tozero"", the range
+            extends to 0, regardless of the input data If
+            ""nonnegative"", the range is non-negative, regardless of
+            the input data. Applies only to linear axes.
+        rangeselector
+            :class:`plotly.graph_objects.layout.xaxis.Rangeselector
+            ` instance or dict with compatible properties
+        rangeslider
+            :class:`plotly.graph_objects.layout.xaxis.Rangeslider`
+            instance or dict with compatible properties
+        scaleanchor
+            If set to another axis id (e.g. `x2`, `y`), the range
+            of this axis changes together with the range of the
+            corresponding axis such that the scale of pixels per
+            unit is in a constant ratio. Both axes are still
+            zoomable, but when you zoom one, the other will zoom
+            the same amount, keeping a fixed midpoint. `constrain`
+            and `constraintoward` determine how we enforce the
+            constraint. You can chain these, ie `yaxis:
+            {scaleanchor: *x*}, xaxis2: {scaleanchor: *y*}` but you
+            can only link axes of the same `type`. The linked axis
+            can have the opposite letter (to constrain the aspect
+            ratio) or the same letter (to match scales across
+            subplots). Loops (`yaxis: {scaleanchor: *x*}, xaxis:
+            {scaleanchor: *y*}` or longer) are redundant and the
+            last constraint encountered will be ignored to avoid
+            possible inconsistent constraints via `scaleratio`.
+            Note that setting axes simultaneously in both a
+            `scaleanchor` and a `matches` constraint is currently
+            forbidden. Setting `false` allows to remove a default
+            constraint (occasionally, you may need to prevent a
+            default `scaleanchor` constraint from being applied,
+            eg. when having an image trace `yaxis: {scaleanchor:
+            ""x""}` is set automatically in order for pixels to be
+            rendered as squares, setting `yaxis: {scaleanchor:
+            false}` allows to remove the constraint).
+        scaleratio
+            If this axis is linked to another by `scaleanchor`,
+            this determines the pixel to unit scale ratio. For
+            example, if this value is 10, then every unit on this
+            axis spans 10 times the number of pixels as a unit on
+            the linked axis. Use this for example to create an
+            elevation profile where the vertical scale is
+            exaggerated a fixed amount with respect to the
+            horizontal.
+        separatethousands
+            If ""true"", even 4-digit integers are separated
+        showdividers
+            Determines whether or not a dividers are drawn between
+            the category levels of this axis. Only has an effect on
+            ""multicategory"" axes.
+        showexponent
+            If ""all"", all exponents are shown besides their
+            significands. If ""first"", only the exponent of the
+            first tick is shown. If ""last"", only the exponent of
+            the last tick is shown. If ""none"", no exponents appear.
+        showgrid
+            Determines whether or not grid lines are drawn. If
+            True, the grid lines are drawn at every tick mark.
+        showline
+            Determines whether or not a line bounding this axis is
+            drawn.
+        showspikes
+            Determines whether or not spikes (aka droplines) are
+            drawn for this axis. Note: This only takes affect when
+            hovermode = closest
+        showticklabels
+            Determines whether or not the tick labels are drawn.
+        showtickprefix
+            If ""all"", all tick labels are displayed with a prefix.
+            If ""first"", only the first tick is displayed with a
+            prefix. If ""last"", only the last tick is displayed with
+            a suffix. If ""none"", tick prefixes are hidden.
+        showticksuffix
+            Same as `showtickprefix` but for tick suffixes.
+        side
+            Determines whether a x (y) axis is positioned at the
+            ""bottom"" (""left"") or ""top"" (""right"") of the plotting
+            area.
+        spikecolor
+            Sets the spike color. If undefined, will use the series
+            color
+        spikedash
+            Sets the dash style of lines. Set to a dash type string
+            (""solid"", ""dot"", ""dash"", ""longdash"", ""dashdot"", or
+            ""longdashdot"") or a dash length list in px (eg
+            ""5px,10px,2px,2px"").
+        spikemode
+            Determines the drawing mode for the spike line If
+            ""toaxis"", the line is drawn from the data point to the
+            axis the  series is plotted on. If ""across"", the line
+            is drawn across the entire plot area, and supercedes
+            ""toaxis"". If ""marker"", then a marker dot is drawn on
+            the axis the series is plotted on
+        spikesnap
+            Determines whether spikelines are stuck to the cursor
+            or to the closest datapoints.
+        spikethickness
+            Sets the width (in px) of the zero line.
+        tick0
+            Sets the placement of the first tick on this axis. Use
+            with `dtick`. If the axis `type` is ""log"", then you
+            must take the log of your starting tick (e.g. to set
+            the starting tick to 100, set the `tick0` to 2) except
+            when `dtick`=*L<f>* (see `dtick` for more info). If the
+            axis `type` is ""date"", it should be a date string, like
+            date data. If the axis `type` is ""category"", it should
+            be a number, using the scale where each category is
+            assigned a serial number from zero in the order it
+            appears.
+        tickangle
+            Sets the angle of the tick labels with respect to the
+            horizontal. For example, a `tickangle` of -90 draws the
+            tick labels vertically.
+        tickcolor
+            Sets the tick color.
+        tickfont
+            Sets the tick font.
+        tickformat
+            Sets the tick label formatting rule using d3 formatting
+            mini-languages which are very similar to those in
+            Python. For numbers, see:
+            https://github.com/d3/d3-format/tree/v1.4.5#d3-format.
+            And for dates see: https://github.com/d3/d3-time-
+            format/tree/v2.2.3#locale_format. We add two items to
+            d3's date formatter: ""%h"" for half of the year as a
+            decimal number as well as ""%{n}f"" for fractional
+            seconds with n digits. For example, *2016-10-13
+            09:15:23.456* with tickformat ""%H~%M~%S.%2f"" would
+            display ""09~15~23.46""
+        tickformatstops
+            A tuple of :class:`plotly.graph_objects.layout.xaxis.Ti
+            ckformatstop` instances or dicts with compatible
+            properties
+        tickformatstopdefaults
+            When used in a template (as
+            layout.template.layout.xaxis.tickformatstopdefaults),
+            sets the default property values to use for elements of
+            layout.xaxis.tickformatstops
+        ticklabelindex
+            Only for axes with `type` ""date"" or ""linear"". Instead
+            of drawing the major tick label, draw the label for the
+            minor tick that is n positions away from the major
+            tick. E.g. to always draw the label for the minor tick
+            before each major tick, choose `ticklabelindex` -1.
+            This is useful for date axes with `ticklabelmode`
+            ""period"" if you want to label the period that ends with
+            each major tick instead of the period that begins
+            there.
+        ticklabelindexsrc
+            Sets the source reference on Chart Studio Cloud for
+            `ticklabelindex`.
+        ticklabelmode
+            Determines where tick labels are drawn with respect to
+            their corresponding ticks and grid lines. Only has an
+            effect for axes of `type` ""date"" When set to ""period"",
+            tick labels are drawn in the middle of the period
+            between ticks.
+        ticklabeloverflow
+            Determines how we handle tick labels that would
+            overflow either the graph div or the domain of the
+            axis. The default value for inside tick labels is *hide
+            past domain*. Otherwise on ""category"" and
+            ""multicategory"" axes the default is ""allow"". In other
+            cases the default is *hide past div*.
+        ticklabelposition
+            Determines where tick labels are drawn with respect to
+            the axis. Please note that top or bottom has no effect
+            on x axes or when `ticklabelmode` is set to ""period"" or
+            when `tickson` is set to ""boundaries"". Similarly, left
+            or right has no effect on y axes or when
+            `ticklabelmode` is set to ""period"" or when `tickson` is
+            set to ""boundaries"". Has no effect on ""multicategory""
+            axes. When used on axes linked by `matches` or
+            `scaleanchor`, no extra padding for inside labels would
+            be added by autorange, so that the scales could match.
+        ticklabelshift
+            Shifts the tick labels by the specified number of
+            pixels in parallel to the axis. Positive values move
+            the labels in the positive direction of the axis.
+        ticklabelstandoff
+            Sets the standoff distance (in px) between the axis
+            tick labels and their default position. A positive
+            `ticklabelstandoff` moves the labels farther away from
+            the plot area if `ticklabelposition` is ""outside"", and
+            deeper into the plot area if `ticklabelposition` is
+            ""inside"". A negative `ticklabelstandoff` works in the
+            opposite direction, moving outside ticks towards the
+            plot area and inside ticks towards the outside. If the
+            negative value is large enough, inside ticks can even
+            end up outside and vice versa.
+        ticklabelstep
+            Sets the spacing between tick labels as compared to the
+            spacing between ticks. A value of 1 (default) means
+            each tick gets a label. A value of 2 means shows every
+            2nd label. A larger value n means only every nth tick
+            is labeled. `tick0` determines which labels are shown.
+            Not implemented for axes with `type` ""log"" or
+            ""multicategory"", or when `tickmode` is ""array"".
+        ticklen
+            Sets the tick length (in px).
+        tickmode
+            Sets the tick mode for this axis. If ""auto"", the number
+            of ticks is set via `nticks`. If ""linear"", the
+            placement of the ticks is determined by a starting
+            position `tick0` and a tick step `dtick` (""linear"" is
+            the default value if `tick0` and `dtick` are provided).
+            If ""array"", the placement of the ticks is set via
+            `tickvals` and the tick text is `ticktext`. (""array"" is
+            the default value if `tickvals` is provided). If
+            ""sync"", the number of ticks will sync with the
+            overlayed axis set by `overlaying` property.
+        tickprefix
+            Sets a tick label prefix.
+        ticks
+            Determines whether ticks are drawn or not. If """", this
+            axis' ticks are not drawn. If ""outside"" (""inside""),
+            this axis' are drawn outside (inside) the axis lines.
+        tickson
+            Determines where ticks and grid lines are drawn with
+            respect to their corresponding tick labels. Only has an
+            effect for axes of `type` ""category"" or
+            ""multicategory"". When set to ""boundaries"", ticks and
+            grid lines are drawn half a category to the left/bottom
+            of labels.
+        ticksuffix
+            Sets a tick label suffix.
+        ticktext
+            Sets the text displayed at the ticks position via
+            `tickvals`. Only has an effect if `tickmode` is set to
+            ""array"". Used with `tickvals`.
+        ticktextsrc
+            Sets the source reference on Chart Studio Cloud for
+            `ticktext`.
+        tickvals
+            Sets the values at which ticks on this axis appear.
+            Only has an effect if `tickmode` is set to ""array"".
+            Used with `ticktext`.
+        tickvalssrc
+            Sets the source reference on Chart Studio Cloud for
+            `tickvals`.
+        tickwidth
+            Sets the tick width (in px).
+        title
+            :class:`plotly.graph_objects.layout.xaxis.Title`
+            instance or dict with compatible properties
+        type
+            Sets the axis type. By default, plotly attempts to
+            determined the axis type by looking into the data of
+            the traces that referenced the axis in question.
+        uirevision
+            Controls persistence of user-driven changes in axis
+            `range`, `autorange`, and `title` if in `editable:
+            true` configuration. Defaults to `layout.uirevision`.
+        unifiedhovertitle
+            :class:`plotly.graph_objects.layout.xaxis.Unifiedhovert
+            itle` instance or dict with compatible properties
+        visible
+            A single toggle to hide the axis while preserving
+            interaction like dragging. Default is true when a
+            cheater plot is present on the axis, otherwise false
+        zeroline
+            Determines whether or not a line is drawn at along the
+            0 value of this axis. If True, the zero line is drawn
+            on top of the grid lines.
+        zerolinecolor
+            Sets the line color of the zero line.
+        zerolinelayer
+            Sets the layer on which this zeroline is displayed. If
+            *above traces*, this zeroline is displayed above all
+            the subplot's traces If *below traces*, this zeroline
+            is displayed below all the subplot's traces, but above
+            the grid lines. Limitation: ""zerolinelayer"" currently
+            has no effect if the ""zorder"" property is set on any
+            trace.
+        zerolinewidth
+            Sets the width (in px) of the zero line.
+        
+Did you mean ""layer""?
+
+Bad property path:
+xaxis
+^^^^^
+"
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+impact_order = {
+    'Significant Decline': 0,
+    'Slight Decline': 1,
+    'No Change': 2,
+    'Improved': 3,
+    'Significantly Improved': 4
+}
+
+df = df.copy()
+df['Impact_Score'] = df['Impact_on_Grades'].map(impact_order)
+
+pairs = []
+usage_values = sorted(df['Daily_Usage_Hours'].unique())
+
+for usage in usage_values:
+    group = df[df['Daily_Usage_Hours'] == usage].copy()
+    if len(group) < 2:
+        continue
+    min_score = group['Impact_Score'].min()
+    max_score = group['Impact_Score'].max()
+    if pd.notna(min_score) and pd.notna(max_score) and (max_score - min_score) >= 2:
+        low_students = group[group['Impact_Score'] == min_score]
+        high_students = group[group['Impact_Score'] == max_score]
+        for _, low_row in low_students.iterrows():
+            for _, high_row in high_students.iterrows():
+                differing_factors = {}
+                for col in ['Education_Level', 'Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Gender', 'City', 'Age']:
+                    if low_row[col] != high_row[col]:
+                        differing_factors[col] = [low_row[col], high_row[col]]
+                pairs.append({
+                    'Daily_Usage_Hours': float(usage),
+                    'lower_performance_student': {
+                        'Student_ID': int(low_row['Student_ID']),
+                        'Impact_on_Grades': low_row['Impact_on_Grades'],
+                        'Purpose': low_row['Purpose'],
+                        'AI_Tool_Used': low_row['AI_Tool_Used'],
+                        'Satisfaction_Level': low_row['Satisfaction_Level'],
+                        'Education_Level': low_row['Education_Level'],
+                        'City': low_row['City'],
+                        'Gender': low_row['Gender'],
+                        'Age': int(low_row['Age'])
+                    },
+                    'higher_performance_student': {
+                        'Student_ID': int(high_row['Student_ID']),
+                        'Impact_on_Grades': high_row['Impact_on_Grades'],
+                        'Purpose': high_row['Purpose'],
+                        'AI_Tool_Used': high_row['AI_Tool_Used'],
+                        'Satisfaction_Level': high_row['Satisfaction_Level'],
+                        'Education_Level': high_row['Education_Level'],
+                        'City': high_row['City'],
+                        'Gender': high_row['Gender'],
+                        'Age': int(high_row['Age'])
+                    },
+                    'possible_explanatory_factors': differing_factors
+                })
+
+factor_columns = ['Education_Level', 'Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Gender', 'City']
+factor_summaries = {}
+
+for col in factor_columns:
+    cross = pd.crosstab(df[col], df['Impact_on_Grades'])
+    factor_summaries[col] = cross.to_dict()
+
+if pairs:
+    result = {
+        'similar_study_time_different_performance': pairs,
+        'summary': (
+            'Students with the same Daily_Usage_Hours can still report very different grade impacts. '
+            'The most plausible factors in this dataset are differences in Purpose, Satisfaction_Level, '
+            'AI_Tool_Used, and Education_Level, with demographic/context variables like Age, City, and Gender '
+            'also varying across matched pairs.'
+        ),
+        'factor_distributions_by_grade_impact': factor_summaries
+    }
+else:
+    # fallback: use nearest study-time pairs within 0.2 hours and large impact differences
+    df1 = df.reset_index(drop=True)
+    fallback_pairs = []
+    for i in range(len(df1)):
+        for j in range(i + 1, len(df1)):
+            if abs(df1.loc[i, 'Daily_Usage_Hours'] - df1.loc[j, 'Daily_Usage_Hours']) <= 0.2:
+                score_diff = abs(df1.loc[i, 'Impact_Score'] - df1.loc[j, 'Impact_Score'])
+                if pd.notna(score_diff) and score_diff >= 2:
+                    a = df1.loc[i]
+                    b = df1.loc[j]
+                    differing_factors = {}
+                    for col in ['Education_Level', 'Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Gender', 'City', 'Age']:
+                        if a[col] != b[col]:
+                            differing_factors[col] = [a[col], b[col]]
+                    fallback_pairs.append({
+                        'student_1': {
+                            'Student_ID': int(a['Student_ID']),
+                            'Daily_Usage_Hours': float(a['Daily_Usage_Hours']),
+                            'Impact_on_Grades': a['Impact_on_Grades']
+                        },
+                        'student_2': {
+                            'Student_ID': int(b['Student_ID']),
+                            'Daily_Usage_Hours': float(b['Daily_Usage_Hours']),
+                            'Impact_on_Grades': b['Impact_on_Grades']
+                        },
+                        'possible_explanatory_factors': differing_factors
+                    })
+    result = {
+        'similar_study_time_different_performance': fallback_pairs,
+        'summary': (
+            'Using a relaxed definition of similar study time (within 0.2 hours), some students show notably '
+            'different academic outcomes. Likely explanations include differences in study purpose, satisfaction '
+            'with AI use, tool choice, and education level.'
+        ),
+        'factor_distributions_by_grade_impact': factor_summaries
+    }","Yes—there are many cases where students spend about the same amount of time using AI tools but report very different grade outcomes.
+
+A few clear examples:
+- At **0.7 hours/day**, Student 30 reported a *slight decline* while Students 13, 38, and 52 reported *improved* grades.
+- At **3.0 hours/day**, Student 71 reported a *slight decline* while Students 60 and 92 reported *improved* grades.
+- At **5.0 hours/day**, Students 40 and 96 reported a *slight decline* while Students 89 and 95 reported *improved* grades.
+
+The strongest factors that may explain these differences are:
+- **Purpose of use**: Higher-performing students were often using AI for coding, learning, or research, while lower-performing peers at the same study time were sometimes using it more for writing or homework.
+- **AI tool used**: Tool choice varies noticeably. In the broader data, \textbf{Grammarly} appears more often among students with slight declines, while \textbf{ChatGPT}, Gemini, and Notion AI appear more often among students reporting improvement.
+- **Satisfaction level**: Improved students sometimes report higher satisfaction, suggesting they may be using the tools more effectively, though this pattern is not perfectly consistent.
+- **Education level**: Students at different levels (school, college, university) can have different outcomes even with the same usage time, likely due to differences in course demands and study habits.
+- **Contextual factors**: Age, city, and gender also differ across matched pairs, but these look more like background variables than the main drivers.
+
+Overall, the data suggests that \textbf{how students use AI matters more than how long they use it}. Purpose, tool selection, and effective use seem to explain performance differences better than study time alone.","{""needed"": true, ""chart_type"": ""grouped_bar"", ""reason"": ""The answer compares multiple categorical factors (purpose, AI tool, education level, satisfaction) across grade-impact groups. A grouped bar chart would make those differences and rankings much clearer than text alone."", ""data_focus"": ""Factor distributions by grade impact, especially Purpose, AI_Tool_Used, Education_Level, and Satisfaction_Level for Improved vs Slight Decline students.""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,Find students who have high stress levels despite relatively low study hours. What factors might explain this?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+low_usage_threshold = df['Daily_Usage_Hours'].quantile(0.25)
+
+high_stress_mask = (
+    df['Satisfaction_Level'].astype(str).str.strip().str.lower().eq('low')
+)
+
+low_study_mask = df['Daily_Usage_Hours'] <= low_usage_threshold
+
+target = df.loc[high_stress_mask & low_study_mask].copy()
+
+factors = {}
+if not target.empty:
+    factors = {
+        'education_level_distribution': target['Education_Level'].value_counts().to_dict(),
+        'city_distribution': target['City'].value_counts().to_dict(),
+        'gender_distribution': target['Gender'].value_counts().to_dict(),
+        'ai_tool_used_distribution': target['AI_Tool_Used'].value_counts().to_dict(),
+        'purpose_distribution': target['Purpose'].value_counts().to_dict(),
+        'impact_on_grades_distribution': target['Impact_on_Grades'].value_counts().to_dict(),
+        'average_age': float(target['Age'].mean()),
+        'average_daily_usage_hours': float(target['Daily_Usage_Hours'].mean())
+    }
+
+students = target[
+    [
+        'Student_ID', 'Age', 'Gender', 'Education_Level', 'City',
+        'AI_Tool_Used', 'Daily_Usage_Hours', 'Purpose',
+        'Impact_on_Grades', 'Satisfaction_Level'
+    ]
+].to_dict(orient='records')
+
+possible_explanations = []
+if not target.empty:
+    if factors['impact_on_grades_distribution']:
+        possible_explanations.append(
+            ""Low satisfaction among low-usage students may be linked to weaker academic outcomes, especially where grades show 'No Change' or 'Slight Decline'.""
+        )
+    if factors['purpose_distribution']:
+        possible_explanations.append(
+            ""Their main usage purpose may matter: students using AI mainly for writing, research, or learning may still feel pressure if those tasks remain difficult despite limited usage time.""
+        )
+    if factors['education_level_distribution']:
+        possible_explanations.append(
+            ""Education level could play a role, as school/college/university demands differ and some groups may face more pressure even with relatively low usage hours.""
+        )
+    if factors['city_distribution']:
+        possible_explanations.append(
+            ""City-level concentration may hint at environmental or institutional differences affecting student pressure and satisfaction.""
+        )
+    possible_explanations.append(
+        ""Because the dataset has no direct stress column, 'low satisfaction' is used as a proxy for high stress, so explanations are indicative rather than definitive.""
+    )
+
+result = {
+    'low_usage_threshold_daily_hours': float(low_usage_threshold),
+    'students_with_high_stress_proxy_and_low_study_hours': students,
+    'count': int(len(target)),
+    'possible_factors': factors,
+    'interpretation': possible_explanations
+}","Using low satisfaction as a proxy for high stress, there are \textbf{8 students} who appear stressed despite relatively low study/AI usage time, with a low-usage threshold of \textbf{1.8 hours/day}.
+
+Some patterns that may help explain this:
+
+- **Low academic payoff:** 4 of the 8 saw **no change** in grades, and 1 had a slight decline. This suggests stress may come from effort not translating into results.
+- **Task type may be demanding:** Most were using AI for **writing** (3) or **research** (2), which can still feel cognitively heavy even if total study time is low.
+- **Mixed educational pressure:** The group is evenly split between **School (4)** and **College (4)**, so the issue does not seem limited to one education level.
+- **Satisfaction is uniformly low:** Even among students whose grades improved, they still reported low satisfaction, which may point to pressure, unmet expectations, or inefficient study habits.
+- **No strong location pattern:** The students are evenly spread across Lahore, Multan, Faisalabad, and Karachi, so stress is unlikely to be driven by one city alone.
+
+Overall, the most plausible explanation is that these students may be spending relatively little time, but not getting the outcomes they want—especially in demanding tasks like writing and research—leading to frustration or stress. Since the dataset has no direct stress measure, this should be treated as an informed indication rather than proof.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer highlights several categorical comparisons across a small subgroup (grade impact, purpose, education level, city, gender, tool). A bar chart would make the main explanatory patterns—especially rankings and counts like 'No Change' grades and writing/research purposes—clearer than text alone."", ""data_focus"": ""Counts of the 8 identified students by likely explanatory factors, especially Impact_on_Grades and Purpose, with optional additional bars for Education_Level or City.""}",visualizations/AI_Student_Life_Pakistan_2026_find_students_who_have_high_stress_levels_despite_relatively.html,
+AI_Student_Life_Pakistan_2026.csv,how about top 3 in terms of highest number of students?,,"Top 3 of what—city, purpose, AI tool used, education level, gender, impact on grades, or something else among the 8 identified students?","{""needed"": false, ""chart_type"": ""none"", ""reason"": """", ""data_focus"": """"}",,
+AI_Student_Life_Pakistan_2026.csv,just from the graph,,"Which graph are you referring to, and what category should I take the top 3 from (for example city, purpose, AI tool used, education level, gender, or impact on grades)?","{""needed"": false, ""chart_type"": ""none"", ""reason"": """", ""data_focus"": """"}",,
+AI_Student_Life_Pakistan_2026.csv,the most recent one,,Which graph do you mean by 'the most recent one'? Please specify the graph or category you want analyzed.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": """", ""data_focus"": """"}",,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+impact_map = {
+    'Significant Decline': 1,
+    'Slight Decline': 2,
+    'No Change': 3,
+    'Improved': 4,
+    'Significantly Improved': 5
+}
+
+df = df.copy()
+df['Impact_Score'] = df['Impact_on_Grades'].map(impact_map)
+
+pairs = []
+n = len(df)
+
+for i in range(n):
+    for j in range(i + 1, n):
+        time_diff = abs(df.loc[i, 'Daily_Usage_Hours'] - df.loc[j, 'Daily_Usage_Hours'])
+        score_diff = abs(df.loc[i, 'Impact_Score'] - df.loc[j, 'Impact_Score'])
+        if time_diff <= 0.3 and score_diff >= 2:
+            row_i = df.loc[i]
+            row_j = df.loc[j]
+            differing_factors = []
+            for col in ['Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Education_Level', 'Gender', 'City', 'Age']:
+                if row_i[col] != row_j[col]:
+                    differing_factors.append(col)
+            pairs.append({
+                'Student_1_ID': int(row_i['Student_ID']),
+                'Student_2_ID': int(row_j['Student_ID']),
+                'Student_1_Study_Time': float(row_i['Daily_Usage_Hours']),
+                'Student_2_Study_Time': float(row_j['Daily_Usage_Hours']),
+                'Student_1_Performance': row_i['Impact_on_Grades'],
+                'Student_2_Performance': row_j['Impact_on_Grades'],
+                'Study_Time_Difference': float(round(time_diff, 3)),
+                'Performance_Gap_Score': int(score_diff),
+                'Potential_Explaining_Factors': differing_factors
+            })
+
+pairs_sorted = sorted(
+    pairs,
+    key=lambda x: (x['Study_Time_Difference'], -x['Performance_Gap_Score'], x['Student_1_ID'], x['Student_2_ID'])
+)
+
+factor_counts = {}
+for p in pairs_sorted:
+    for f in p['Potential_Explaining_Factors']:
+        factor_counts[f] = factor_counts.get(f, 0) + 1
+
+result = {
+    'criteria_used': {
+        'similar_study_time_max_difference_hours': 0.3,
+        'significant_performance_difference_min_score_gap': 2,
+        'performance_scale': impact_map
+    },
+    'matching_student_pairs_count': len(pairs_sorted),
+    'student_pairs': pairs_sorted,
+    'most_common_potential_factors': dict(sorted(factor_counts.items(), key=lambda x: (-x[1], x[0]))),
+    'summary': (
+        'Students were matched when their Daily_Usage_Hours were within 0.3 hours but their '
+        'Impact_on_Grades differed by at least two levels. Possible explanations were inferred '
+        'from differences in Purpose, AI_Tool_Used, Satisfaction_Level, Education_Level, Gender, '
+        'City, and Age between each matched pair.'
+    )
+}","There are \textbf{137 student pairs} with very similar study time (within 0.3 hours) but meaningfully different academic performance (at least a 2-level gap on the performance scale).
+
+A few clear examples:
+- Student 1 vs 57: both studied 0.8 hours, but one showed a slight decline while the other improved.
+- Student 4 vs 8: both studied 4.2 hours, yet one improved and the other had a slight decline.
+- Student 40 vs 89: both studied 5.0 hours, but one had a slight decline while the other improved.
+
+The factors most often associated with these differences were:
+- \textbf{Age}: 123 pairs
+- \textbf{AI tool used}: 115 pairs
+- \textbf{City}: 115 pairs
+- Purpose of use: 111 pairs
+- Education level: 91 pairs
+- Satisfaction level: 86 pairs
+- Gender: 72 pairs
+
+Overall, this suggests that similar study time alone does not explain outcomes well. Differences in how students use AI tools, why they use them, their background (age, education level, city), and how satisfied they are with the tools may help explain why some students improve while others decline despite spending about the same amount of time studying.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer highlights rankings of the most common potential explaining factors across 137 matched student pairs. A bar chart would make the relative importance of Age, AI tool used, City, Purpose, Education level, Satisfaction level, and Gender much clearer than text alone."", ""data_focus"": ""Counts of most_common_potential_factors by factor name""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,what about only the top 3,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+prior_pairs = prior_turn.get(""execution_result"", {}).get(""student_pairs"", []) if isinstance(prior_turn, dict) else []
+top_3_pairs = prior_pairs[:3]
+
+result = top_3_pairs","Here are the top 3 student pairs from the 137 matched pairs:
+
+1. \textbf{Student 1 vs Student 57}  
+   Same study time: 0.8 hours  
+   Performance: Slight Decline vs Improved  
+   Performance gap score: 2  
+   Potential explaining factors: AI tool used, city, age
+
+2. \textbf{Student 4 vs Student 8}  
+   Same study time: 4.2 hours  
+   Performance: Improved vs Slight Decline  
+   Performance gap score: 2  
+   Potential explaining factors: purpose, AI tool used, age
+
+3. \textbf{Student 7 vs Student 76}  
+   Same study time: 2.0 hours  
+   Performance: Slight Decline vs Improved  
+   Performance gap score: 2  
+   Potential explaining factors: purpose, satisfaction level, education level, city, age","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The answer is a short ranked list of only three student pairs with categorical differences and identical study times. A visualization would add little beyond the concise tabular/text presentation."", ""data_focus"": ""Top 3 matched student pairs with study time, performance comparison, gap score, and potential explaining factors.""}",,
+AI_Student_Life_Pakistan_2026.csv,show the graph,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+top_pairs = prior_turn[""execution_result""]
+
+performance_map = {
+    ""Significant Decline"": 0,
+    ""Slight Decline"": 1,
+    ""No Change"": 2,
+    ""Improved"": 3,
+    ""Significant Improvement"": 4
+}
+
+records = []
+for i, pair in enumerate(top_pairs, start=1):
+    records.append({
+        ""Pair"": f""Pair {i}"",
+        ""Student_Label"": f""S{pair['Student_1_ID']}"",
+        ""Student_ID"": pair[""Student_1_ID""],
+        ""Study_Time_Hours"": pair[""Student_1_Study_Time""],
+        ""Performance"": pair[""Student_1_Performance""],
+        ""Performance_Score"": performance_map.get(pair[""Student_1_Performance""], np.nan)
+    })
+    records.append({
+        ""Pair"": f""Pair {i}"",
+        ""Student_Label"": f""S{pair['Student_2_ID']}"",
+        ""Student_ID"": pair[""Student_2_ID""],
+        ""Study_Time_Hours"": pair[""Student_2_Study_Time""],
+        ""Performance"": pair[""Student_2_Performance""],
+        ""Performance_Score"": performance_map.get(pair[""Student_2_Performance""], np.nan)
+    })
+
+plot_df = pd.DataFrame(records)
+
+mermaid_lines = [
+    ""xychart-beta"",
+    '    title ""Top 3 Student Pairs: Same Study Time, Different Performance""',
+    ""    x-axis [Pair 1, Pair 2, Pair 3]"",
+    '    y-axis ""Study Time Hours"" 0 --> 5',
+    ""    bar \""Student 1 Study Time\"" [0.8, 4.2, 2.0]"",
+    ""    bar \""Student 2 Study Time\"" [0.8, 4.2, 2.0]"",
+    '    y-axis ""Performance Score"" 0 --> 3'
+]
+
+result = {
+    ""visualization_type"": ""comparison_chart_spec"",
+    ""note"": ""Since only pandas/numpy/standard library are allowed, this returns a JSON-serializable chart-ready structure plus Mermaid chart code for rendering externally. Performance score mapping: Slight Decline=1, No Change=2, Improved=3."",
+    ""performance_score_mapping"": performance_map,
+    ""chart_data"": plot_df.to_dict(orient=""records""),
+    ""recommended_views"": [
+        {
+            ""chart"": ""grouped_bar_study_time"",
+            ""x"": ""Pair"",
+            ""y"": ""Study_Time_Hours"",
+            ""series"": ""Student_Label"",
+            ""description"": ""Shows both students in each pair have the same study time.""
+        },
+        {
+            ""chart"": ""grouped_bar_performance"",
+            ""x"": ""Pair"",
+            ""y"": ""Performance_Score"",
+            ""series"": ""Student_Label"",
+            ""description"": ""Shows the academic performance contrast within each pair.""
+        }
+    ],
+    ""pair_summaries"": [
+        {
+            ""Pair"": ""Pair 1"",
+            ""Students"": [1, 57],
+            ""Study_Time_Hours"": [0.8, 0.8],
+            ""Performance"": [""Slight Decline"", ""Improved""]
+        },
+        {
+            ""Pair"": ""Pair 2"",
+            ""Students"": [4, 8],
+            ""Study_Time_Hours"": [4.2, 4.2],
+            ""Performance"": [""Improved"", ""Slight Decline""]
+        },
+        {
+            ""Pair"": ""Pair 3"",
+            ""Students"": [7, 76],
+            ""Study_Time_Hours"": [2.0, 2.0],
+            ""Performance"": [""Slight Decline"", ""Improved""]
+        }
+    ],
+    ""mermaid_performance_chart"": """"""xychart-beta
+    title ""Top 3 Student Pairs: Performance Comparison""
+    x-axis [Pair 1, Pair 2, Pair 3]
+    y-axis ""Performance Score"" 0 --> 3
+    bar ""First student"" [1, 3, 1]
+    bar ""Second student"" [3, 1, 3]
+"""""",
+    ""mermaid_study_time_chart"": """"""xychart-beta
+    title ""Top 3 Student Pairs: Study Time Comparison""
+    x-axis [Pair 1, Pair 2, Pair 3]
+    y-axis ""Daily Usage Hours"" 0 --> 5
+    bar ""First student"" [0.8, 4.2, 2.0]
+    bar ""Second student"" [0.8, 4.2, 2.0]
+""""""
+}","Here’s a clear visualization-ready summary of the top 3 matched pairs. A two-panel grouped bar chart is the best choice:
+
+1. one chart for \textbf{study time}  
+2. one chart for \textbf{performance outcome}
+
+This makes it easy to see that each pair had the same study time, but different academic outcomes.
+
+Study time comparison:
+```mermaid
+xychart-beta
+    title ""Top 3 Student Pairs: Study Time Comparison""
+    x-axis [Pair 1, Pair 2, Pair 3]
+    y-axis ""Study Time (Hours)"" 0 --> 5
+    bar ""First student"" [0.8, 4.2, 2.0]
+    bar ""Second student"" [0.8, 4.2, 2.0]
+```
+
+Performance comparison:
+```mermaid
+xychart-beta
+    title ""Top 3 Student Pairs: Performance Comparison""
+    x-axis [Pair 1, Pair 2, Pair 3]
+    y-axis ""Performance Score"" 0 --> 3
+    bar ""First student"" [1, 3, 1]
+    bar ""Second student"" [3, 1, 3]
+```
+
+Performance score key:
+- 1 = Slight Decline
+- 3 = Improved
+
+Pair breakdown:
+- Pair 1: Student 1 vs 57 — both studied 0.8 hours, but performance was Slight Decline vs Improved
+- Pair 2: Student 4 vs 8 — both studied 4.2 hours, but performance was Improved vs Slight Decline
+- Pair 3: Student 7 vs 76 — both studied 2.0 hours, but performance was Slight Decline vs Improved
+
+Overall, the graph highlights that \textbf{identical study time did not correspond to identical academic performance} in these top 3 pairs.","{""needed"": true, ""chart_type"": ""grouped_bar"", ""reason"": ""The user explicitly asked for a graph, and a grouped bar comparison clearly shows that each student pair has similar study time while differing in academic performance."", ""data_focus"": ""Top 3 student pairs; compare each pair's two students across study time hours and performance score/outcome.""}",visualizations/AI_Student_Life_Pakistan_2026_show_the_graph.html,
+AI_Student_Life_Pakistan_2026.csv,Which cities have the highest average daily AI usage?,"import pandas as pd
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+avg_usage_by_city = (
+    df.groupby('City', as_index=False)['Daily_Usage_Hours']
+    .mean()
+    .sort_values('Daily_Usage_Hours', ascending=False)
+)
+
+max_avg = avg_usage_by_city['Daily_Usage_Hours'].max()
+top_cities = avg_usage_by_city[avg_usage_by_city['Daily_Usage_Hours'] == max_avg]
+
+result = {
+    ""highest_average_daily_ai_usage_hours"": float(max_avg),
+    ""cities"": top_cities['City'].tolist(),
+    ""city_averages"": [
+        {""City"": row[""City""], ""Average_Daily_Usage_Hours"": float(row[""Daily_Usage_Hours""])}
+        for _, row in avg_usage_by_city.iterrows()
+    ]
+}","\textbf{Faisalabad} has the highest average daily AI usage at about \textbf{3.35 hours/day}.
+
+For context, the city averages are:
+- Faisalabad: 3.35 hours
+- Lahore: 3.11 hours
+- Islamabad: 3.01 hours
+- Karachi: 2.97 hours
+- Multan: 2.94 hours","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would make the ranking and small differences in average daily AI usage across cities easier to compare at a glance."", ""data_focus"": ""Average daily AI usage hours by city, sorted from highest to lowest.""}",visualizations/AI_Student_Life_Pakistan_2026_which_cities_have_the_highest_average_daily_ai_usage.html,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+impact_order = {
+    'Significant Decline': 0,
+    'Slight Decline': 1,
+    'No Change': 2,
+    'Improved': 3,
+    'Significant Improvement': 4
+}
+
+df = df.copy()
+df['Impact_Score'] = df['Impact_on_Grades'].map(impact_order)
+
+# Group students by similar study/use time using rounded usage buckets
+df['Usage_Bucket'] = df['Daily_Usage_Hours'].round(1)
+
+pairs = []
+for bucket, g in df.groupby('Usage_Bucket'):
+    g = g.sort_values('Impact_Score')
+    min_score = g['Impact_Score'].min()
+    max_score = g['Impact_Score'].max()
+    if pd.notna(min_score) and pd.notna(max_score) and (max_score - min_score) >= 2:
+        low_group = g[g['Impact_Score'] == min_score]
+        high_group = g[g['Impact_Score'] == max_score]
+        for _, low in low_group.iterrows():
+            for _, high in high_group.iterrows():
+                differing_factors = {}
+                for col in ['Purpose', 'Satisfaction_Level', 'AI_Tool_Used', 'Education_Level', 'City', 'Gender', 'Age']:
+                    if low[col] != high[col]:
+                        differing_factors[col] = {
+                            'lower_performance_student': low[col],
+                            'higher_performance_student': high[col]
+                        }
+                pairs.append({
+                    'Daily_Usage_Hours': float(bucket),
+                    'lower_performance_student': {
+                        'Student_ID': int(low['Student_ID']),
+                        'Impact_on_Grades': low['Impact_on_Grades']
+                    },
+                    'higher_performance_student': {
+                        'Student_ID': int(high['Student_ID']),
+                        'Impact_on_Grades': high['Impact_on_Grades']
+                    },
+                    'possible_explanatory_factors': differing_factors
+                })
+
+# Keep a manageable set of strongest examples
+pairs_sorted = sorted(
+    pairs,
+    key=lambda x: (
+        impact_order[x['higher_performance_student']['Impact_on_Grades']] -
+        impact_order[x['lower_performance_student']['Impact_on_Grades']]
+    ),
+    reverse=True
+)
+
+summary_factors = {}
+for p in pairs_sorted:
+    for factor in p['possible_explanatory_factors']:
+        summary_factors[factor] = summary_factors.get(factor, 0) + 1
+
+result = {
+    'similar_study_time_different_performance_examples': pairs_sorted[:10],
+    'likely_factors_explaining_differences': sorted(
+        [{'factor': k, 'count_across_examples': int(v)} for k, v in summary_factors.items()],
+        key=lambda x: x['count_across_examples'],
+        reverse=True
+    ),
+    'note': 'Students were compared within the same Daily_Usage_Hours bucket (rounded to 0.1 hour). Differences in purpose, satisfaction, tool used, education level, city, age, and gender may help explain why similar usage time is associated with different grade impact.'
+}","Several students had \textbf{similar AI study time} but very different grade outcomes.
+
+Examples:
+- At **0.7 hours/day**, Student 30 saw a slight decline, while Students 13, 38, and 52 improved.
+- At **3.0 hours/day**, Student 71 had a slight decline, while Students 60 and 92 improved.
+- Similar contrasts also appeared at **0.8, 1.9, 2.0, 2.7, and 3.2 hours/day**.
+
+The most likely factors behind these differences were:
+- \textbf{Age} (appeared in 21 comparisons)
+- \textbf{AI tool used} (19)
+- \textbf{City} (19)
+- \textbf{Purpose of use} (18)
+- Satisfaction level (15)
+- Education level (13)
+- Gender (10)
+
+In practical terms, students using AI for **learning, coding, or research** were more often in the improved group, while lower-performing students were more often using it for **writing or homework**. Higher-performing students also tended to report **higher satisfaction** and sometimes used different tools such as **Gemini** or **Notion AI**, compared with lower-performing students who were often using **Grammarly**.
+
+So, the key takeaway is that \textbf{how students use AI seems to matter more than how long they use it}. Purpose, tool choice, satisfaction, and background factors likely explain why equal study time can lead to different academic results.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer highlights ranked explanatory factors by how often they appeared across matched student comparisons. A bar chart would make these frequency differences and the relative importance of factors much clearer than text alone."", ""data_focus"": ""Counts of likely explanatory factors across examples: Age, AI_Tool_Used, City, Purpose, Satisfaction_Level, Education_Level, and Gender.""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+
+impact_order = {
+    'Significant Decline': 0,
+    'Slight Decline': 1,
+    'No Change': 2,
+    'Improved': 3,
+    'Significantly Improved': 4
+}
+
+df = df.copy()
+df['Impact_Score'] = df['Impact_on_Grades'].map(impact_order)
+
+pairs = []
+tolerance = 0.2
+min_diff = 2
+
+for i in range(len(df)):
+    for j in range(i + 1, len(df)):
+        h1 = df.iloc[i]['Daily_Usage_Hours']
+        h2 = df.iloc[j]['Daily_Usage_Hours']
+        s1 = df.iloc[i]['Impact_Score']
+        s2 = df.iloc[j]['Impact_Score']
+        if pd.notna(s1) and pd.notna(s2):
+            if abs(h1 - h2) <= tolerance and abs(s1 - s2) >= min_diff:
+                row1 = df.iloc[i]
+                row2 = df.iloc[j]
+                differing_factors = {}
+                for col in ['Education_Level', 'Purpose', 'AI_Tool_Used', 'Satisfaction_Level', 'Gender', 'City', 'Age']:
+                    if row1[col] != row2[col]:
+                        differing_factors[col] = [row1[col], row2[col]]
+                pairs.append({
+                    'Student_1_ID': int(row1['Student_ID']),
+                    'Student_2_ID': int(row2['Student_ID']),
+                    'Student_1_Usage_Hours': float(row1['Daily_Usage_Hours']),
+                    'Student_2_Usage_Hours': float(row2['Daily_Usage_Hours']),
+                    'Student_1_Impact': row1['Impact_on_Grades'],
+                    'Student_2_Impact': row2['Impact_on_Grades'],
+                    'Usage_Difference_Hours': float(abs(h1 - h2)),
+                    'Impact_Score_Difference': int(abs(s1 - s2)),
+                    'Potential_Explaining_Factors': differing_factors
+                })
+
+pairs_sorted = sorted(
+    pairs,
+    key=lambda x: (-x['Impact_Score_Difference'], x['Usage_Difference_Hours'], x['Student_1_ID'], x['Student_2_ID'])
+)
+
+top_pairs = pairs_sorted[:10]
+
+factor_counts = {}
+for p in pairs:
+    for factor in p['Potential_Explaining_Factors'].keys():
+        factor_counts[factor] = factor_counts.get(factor, 0) + 1
+
+factor_counts = dict(sorted(factor_counts.items(), key=lambda x: (-x[1], x[0])))
+
+result = {
+    'similar_study_time_different_performance_pairs': top_pairs,
+    'summary': {
+        'pair_count_found': int(len(pairs)),
+        'study_time_similarity_threshold_hours': tolerance,
+        'minimum_performance_gap_on_ordinal_scale': min_diff,
+        'most_common_potential_factors': factor_counts
+    },
+    'interpretation': (
+        ""Students with nearly the same daily AI study/usage time can still report very different grade impacts. ""
+        ""In this dataset, the biggest observable factors associated with these differences are variations in ""
+        ""Purpose, Satisfaction_Level, Education_Level, AI_Tool_Used, Age, City, and Gender across matched pairs. ""
+        ""This suggests that how students use AI, how satisfied they are with it, and their academic context may matter ""
+        ""more than time spent alone.""
+    )
+}","Yes—there are many cases where students have nearly identical study/AI usage time but noticeably different academic outcomes.
+
+In total, \textbf{78 matched pairs} were found using:
+- study-time difference within 0.2 hours
+- at least a 2-level gap in reported academic impact
+
+Examples:
+- Student 1 vs 57: both used AI for \textbf{0.8 hours}, but one reported *Slight Decline* while the other reported *Improved*.
+- Student 4 vs 8: both used AI for \textbf{4.2 hours}, yet one reported *Improved* and the other *Slight Decline*.
+- Student 22 vs 100: both used AI for \textbf{2.7 hours}, but again had opposite outcomes.
+
+The most likely factors explaining these differences are:
+- \textbf{Age} (appeared in 71 pairs)
+- City (64)
+- AI tool used (63)
+- Purpose of use (61)
+- Education level (51)
+- Satisfaction level (48)
+- Gender (43)
+
+Overall, the pattern suggests that time spent alone does not explain performance well. Differences in \emph{how} students use AI, \emph{which tool} they use, their learning context, and how satisfied they are with the tool seem more important than study time by itself.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would clearly show the ranking of the most common potential explaining factors across the 78 matched pairs, making it easier to compare which factors are most associated with different performance despite similar study time."", ""data_focus"": ""Counts of potential explaining factors in matched pairs: Age (71), City (64), AI_Tool_Used (63), Purpose (61), Education_Level (51), Satisfaction_Level (48), Gender (43).""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,Identify students with similar study time but significantly different academic performance. What factors might explain these differences?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+impact_order = {
+    ""Significant Decline"": 1,
+    ""Slight Decline"": 2,
+    ""No Change"": 3,
+    ""Improved"": 4,
+    ""Significantly Improved"": 5
+}
+
+df[""Impact_Score""] = df[""Impact_on_Grades""].map(impact_order)
+
+pairs = []
+threshold_hours = 0.3
+threshold_impact = 2
+
+for i in range(len(df)):
+    for j in range(i + 1, len(df)):
+        row_i = df.iloc[i]
+        row_j = df.iloc[j]
+        hour_diff = abs(row_i[""Daily_Usage_Hours""] - row_j[""Daily_Usage_Hours""])
+        impact_diff = abs(row_i[""Impact_Score""] - row_j[""Impact_Score""])
+        if hour_diff <= threshold_hours and impact_diff >= threshold_impact:
+            pairs.append({
+                ""Student_1_ID"": int(row_i[""Student_ID""]),
+                ""Student_2_ID"": int(row_j[""Student_ID""]),
+                ""Student_1_Usage_Hours"": float(row_i[""Daily_Usage_Hours""]),
+                ""Student_2_Usage_Hours"": float(row_j[""Daily_Usage_Hours""]),
+                ""Student_1_Impact"": row_i[""Impact_on_Grades""],
+                ""Student_2_Impact"": row_j[""Impact_on_Grades""],
+                ""Hour_Difference"": float(hour_diff),
+                ""Impact_Score_Difference"": int(impact_diff),
+                ""Student_1_Purpose"": row_i[""Purpose""],
+                ""Student_2_Purpose"": row_j[""Purpose""],
+                ""Student_1_Satisfaction"": row_i[""Satisfaction_Level""],
+                ""Student_2_Satisfaction"": row_j[""Satisfaction_Level""],
+                ""Student_1_Tool"": row_i[""AI_Tool_Used""],
+                ""Student_2_Tool"": row_j[""AI_Tool_Used""],
+                ""Student_1_Education_Level"": row_i[""Education_Level""],
+                ""Student_2_Education_Level"": row_j[""Education_Level""],
+                ""Student_1_City"": row_i[""City""],
+                ""Student_2_City"": row_j[""City""]
+            })
+
+pairs_df = pd.DataFrame(pairs)
+
+possible_factors = []
+if not pairs_df.empty:
+    factor_counts = {
+        ""Different Purpose"": int((pairs_df[""Student_1_Purpose""] != pairs_df[""Student_2_Purpose""]).sum()),
+        ""Different Satisfaction_Level"": int((pairs_df[""Student_1_Satisfaction""] != pairs_df[""Student_2_Satisfaction""]).sum()),
+        ""Different AI_Tool_Used"": int((pairs_df[""Student_1_Tool""] != pairs_df[""Student_2_Tool""]).sum()),
+        ""Different Education_Level"": int((pairs_df[""Student_1_Education_Level""] != pairs_df[""Student_2_Education_Level""]).sum()),
+        ""Different City"": int((pairs_df[""Student_1_City""] != pairs_df[""Student_2_City""]).sum())
+    }
+    total_pairs = len(pairs_df)
+    possible_factors = [
+        {
+            ""factor"": k,
+            ""count"": v,
+            ""share_of_pairs"": round(v / total_pairs, 3)
+        }
+        for k, v in sorted(factor_counts.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+result = {
+    ""matched_pairs_count"": int(len(pairs_df)),
+    ""examples"": pairs_df.head(10).to_dict(orient=""records"") if not pairs_df.empty else [],
+    ""possible_explanatory_factors"": possible_factors,
+    ""summary"": (
+        ""Students with similar Daily_Usage_Hours but very different Impact_on_Grades were identified by pairing ""
+        ""students whose study/AI usage time differed by at most 0.3 hours and whose grade impact categories differed ""
+        ""by at least 2 levels. Likely explanations in this dataset include differences in Purpose, ""
+        ""Satisfaction_Level, AI_Tool_Used, Education_Level, and City.""
+    )
+}","There are \textbf{137 matched student pairs} with very similar study/AI usage time but noticeably different academic outcomes.
+
+A few examples:
+- Student 1 (0.8 hrs, *Slight Decline*) vs Student 13 (0.7 hrs, *Improved*)
+- Student 4 (4.2 hrs, *Improved*) vs Student 8 (4.2 hrs, *Slight Decline*)
+- Student 3 (1.8 hrs, *Improved*) vs Student 7 (2.0 hrs, *Slight Decline*)
+
+The biggest factors that may explain these differences are:
+- \textbf{Different AI tool used}: 115 pairs (83.9%)
+- \textbf{Different city}: 115 pairs (83.9%)
+- Different study purpose: 111 pairs (81.0%)
+- Different education level: 91 pairs (66.4%)
+- Different satisfaction level: 86 pairs (62.8%)
+
+Overall, the results suggest that similar study time alone does not guarantee similar performance. Outcomes seem to vary more with *how* students use AI, *what* they use it for, their educational context, and possibly local/environmental differences.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The answer compares several possible explanatory factors by count and percentage across matched pairs, and a bar chart would make the ranking and relative importance of these factors much clearer than text alone."", ""data_focus"": ""Counts or shares of matched pairs for each explanatory factor: Different AI tool used, Different city, Different study purpose, Different education level, and Different satisfaction level.""}",visualizations/AI_Student_Life_Pakistan_2026_identify_students_with_similar_study_time_but_significantly_.html,
+AI_Student_Life_Pakistan_2026.csv,What is the average daily study time across all students?,"import pandas as pd
+
+df = pd.read_csv('AI_Student_Life_Pakistan_2026.csv')
+result = float(df['Daily_Usage_Hours'].mean())",The average daily study time across all students is **about 3.06 hours per day**.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single aggregate value, so a visualization would not add meaningful clarity unless the user specifically requested one."", ""data_focus"": ""Average daily study time across all students""}",,
+AI_Student_Life_Pakistan_2026.csv,What is the average daily study time across all students?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+result = float(df[""Daily_Usage_Hours""].mean())",The average daily study time across all students is **about 3.06 hours per day**.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single aggregate value, so a visualization would not add meaningful clarity unless the user specifically requested one."", ""data_focus"": ""Average daily study time across all students""}",,
+AI_Student_Life_Pakistan_2026.csv,How does average AI usage vary across different education levels?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+avg_usage = (
+    df.groupby(""Education_Level"", dropna=False)[""Daily_Usage_Hours""]
+    .mean()
+    .sort_values(ascending=False)
+    .round(3)
+)
+
+result = avg_usage.reset_index().to_dict(orient=""records"")","Average AI usage is fairly similar across education levels, but it is highest among \textbf{College} users.
+
+- College: **3.334 hours/day**
+- University: **3.068 hours/day**
+- School: **2.891 hours/day**
+
+So, AI usage declines slightly from College to University to School, with a spread of about **0.44 hours/day** between the highest and lowest groups.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""The question compares average AI usage across categorical education levels, and a bar chart makes the differences and ranking between groups easier to see at a glance."", ""data_focus"": ""Average Daily_Usage_Hours for each Education_Level: College, University, and School.""}",visualizations/AI_Student_Life_Pakistan_2026_how_does_average_ai_usage_vary_across_different_education_le.html,
+AI_Student_Life_Pakistan_2026.csv,What is the average daily study time across all students?\,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/AI_Student_Life_Pakistan_2026.csv')
+result = float(df['Daily_Usage_Hours'].mean())",The average daily study time across all students is **3.064 hours per day**.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single aggregate scalar (average daily study time) and does not involve comparisons, trends, distributions, or relationships that would be clarified by a visualization."", ""data_focus"": ""Overall average daily study time across all students""}",,
+AI_Student_Life_Pakistan_2026.csv,Which cities have the highest average daily AI usage?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+avg_usage_by_city = (
+    df.groupby(""City"", as_index=False)[""Daily_Usage_Hours""]
+    .mean()
+    .sort_values(""Daily_Usage_Hours"", ascending=False)
+)
+
+max_avg = avg_usage_by_city[""Daily_Usage_Hours""].max()
+
+top_cities = avg_usage_by_city[avg_usage_by_city[""Daily_Usage_Hours""] == max_avg].copy()
+top_cities[""Daily_Usage_Hours""] = top_cities[""Daily_Usage_Hours""].round(3)
+
+result = top_cities.to_dict(orient=""records"")","The city with the highest average daily AI usage is \textbf{Faisalabad}, at about \textbf{3.347 hours per day}.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single top city with one average value, so a visualization would not add meaningful clarity beyond the concise scalar answer."", ""data_focus"": ""Highest average daily AI usage by city (single value: Faisalabad at 3.347 hours/day)""}",,
+AI_Student_Life_Pakistan_2026.csv,what about top 3?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+top_3 = (
+    df.groupby(""City"", as_index=False)[""Daily_Usage_Hours""]
+    .mean()
+    .sort_values(""Daily_Usage_Hours"", ascending=False)
+    .head(3)
+)
+
+top_3[""Daily_Usage_Hours""] = top_3[""Daily_Usage_Hours""].round(3)
+result = top_3.to_dict(orient=""records"")","The top 3 cities with the highest average daily AI usage are:
+
+1. \textbf{Faisalabad} — 3.347 hours/day  
+2. Lahore — 3.114 hours/day  
+3. Islamabad — 3.011 hours/day
+
+So, Faisalabad has the highest average daily AI usage among the three.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would make the ranking and the small differences in average daily AI usage across the top 3 cities easier to compare at a glance."", ""data_focus"": ""City on the x-axis and average Daily_Usage_Hours on the y-axis for Faisalabad, Lahore, and Islamabad.""}",visualizations/AI_Student_Life_Pakistan_2026_what_about_top_3.html,
+AI_Student_Life_Pakistan_2026.csv,What is the average daily study time across all students?,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/AI_Student_Life_Pakistan_2026.csv')
+result = float(df['Daily_Usage_Hours'].mean())",The average daily study time across all students is \textbf{3.06 hours per day}.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The question asks for a single overall average, and the result is a single scalar value. A visualization would not add meaningful clarity unless a visual presentation was explicitly requested."", ""data_focus"": ""Overall average daily study time across all students""}",,
+AI_Student_Life_Pakistan_2026.csv,How does average AI usage vary across different education levels?,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/AI_Student_Life_Pakistan_2026.csv')
+
+avg_usage = (
+    df.groupby('Education_Level', as_index=False)['Daily_Usage_Hours']
+    .mean()
+    .sort_values('Daily_Usage_Hours', ascending=False)
+)
+
+result = avg_usage.to_dict(orient='records')","Average AI usage is highest among people with a \textbf{College} education, at about **3.33 hours/day**. It is slightly lower for those at the \textbf{University} level, about **3.07 hours/day**, and lowest for \textbf{School}, at about **2.89 hours/day**.
+
+Overall, AI usage increases modestly with education level, with College users spending the most time on average.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would clearly compare average AI usage across the three education levels and make the ranking and small differences easier to see."", ""data_focus"": ""Average Daily_Usage_Hours for each Education_Level (College, University, School).""}",visualizations/AI_Student_Life_Pakistan_2026_how_does_average_ai_usage_vary_across_different_education_le.html,
+AI_Student_Life_Pakistan_2026.csv,Which cities have the highest average daily AI usage?,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/AI_Student_Life_Pakistan_2026.csv')
+
+city_avg = (
+    df.groupby('City', as_index=False)['Daily_Usage_Hours']
+    .mean()
+    .sort_values('Daily_Usage_Hours', ascending=False)
+)
+
+max_avg = city_avg['Daily_Usage_Hours'].max()
+
+top_cities = city_avg[city_avg['Daily_Usage_Hours'] == max_avg].copy()
+top_cities['Daily_Usage_Hours'] = top_cities['Daily_Usage_Hours'].round(3)
+
+result = top_cities.to_dict(orient='records')","\textbf{Faisalabad} has the highest average daily AI usage, at about \textbf{3.35 hours per day}.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single highest-value city with one scalar average, so a visualization would not add meaningful clarity beyond the text answer."", ""data_focus"": ""Highest average daily AI usage by city (Faisalabad at 3.35 hours/day).""}",,
+AI_Student_Life_Pakistan_2026.csv,what about the lowest?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+city_avg = (
+    df.groupby(""City"", as_index=False)[""Daily_Usage_Hours""]
+    .mean()
+)
+
+min_avg = city_avg[""Daily_Usage_Hours""].min()
+
+lowest_cities = city_avg[city_avg[""Daily_Usage_Hours""] == min_avg].copy()
+lowest_cities[""Daily_Usage_Hours""] = lowest_cities[""Daily_Usage_Hours""].round(3)
+lowest_cities = lowest_cities.sort_values(""City"").reset_index(drop=True)
+
+result = lowest_cities.to_dict(orient=""records"")","The city with the lowest average daily AI usage is \textbf{Multan}, at **2.938 hours per day**.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single lowest-value city with one scalar average, so a visualization would not add meaningful clarity unless the user explicitly requested one."", ""data_focus"": ""Lowest average daily AI usage for Multan (2.938 hours per day)""}",,
+AI_Student_Life_Pakistan_2026.csv,the average across  all cities?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+avg_usage = df.groupby('City', as_index=False)['Daily_Usage_Hours'].mean()
+avg_usage['Daily_Usage_Hours'] = avg_usage['Daily_Usage_Hours'].round(3)
+overall_avg = round(df['Daily_Usage_Hours'].mean(), 3)
+
+result = {
+    ""average_daily_ai_usage_across_all_cities"": overall_avg,
+    ""by_city"": avg_usage.to_dict(orient='records')
+}","The average daily AI usage across all cities is \textbf{3.064 hours per day}.
+
+For context, the city-level averages were:
+- Faisalabad: 3.347 hours
+- Lahore: 3.114 hours
+- Islamabad: 3.011 hours
+- Karachi: 2.971 hours
+- Multan: 2.938 hours","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would make the city-by-city comparison of average daily AI usage clearer and show how each city relates to the overall average."", ""data_focus"": ""Average daily AI usage hours by city, optionally with a reference line at the overall average of 3.064 hours.""}",visualizations/AI_Student_Life_Pakistan_2026_the_average_across_all_cities.html,
+AI_Student_Life_Pakistan_2026.csv,What is the average daily study time across all students?,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/AI_Student_Life_Pakistan_2026.csv')
+result = float(df['Daily_Usage_Hours'].mean())",The average daily study time across all students is **about 3.06 hours per day**.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single aggregate value, so a visualization would not add meaningful clarity unless the user specifically requested one."", ""data_focus"": ""Average daily study time across all students""}",,
+AI_Student_Life_Pakistan_2026.csv,What is the average daily study time across all students?,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/datasets/AI_Student_Life_Pakistan_2026.csv')
+result = float(df['Daily_Usage_Hours'].mean())",The average daily study time across all students is **3.064 hours per day**.,"{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single aggregate scalar (overall average daily study time), so a visualization would not add meaningful clarity unless the user specifically requested one."", ""data_focus"": ""Overall average daily study time across all students""}",False,
+AI_Student_Life_Pakistan_2026.csv,Which education level has the highest average satisfaction level?,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+satisfaction_map = {
+    'Low': 1,
+    'Medium': 2,
+    'High': 3
+}
+
+df = df.copy()
+df['Satisfaction_Score'] = df['Satisfaction_Level'].map(satisfaction_map)
+
+avg_satisfaction = (
+    df.groupby('Education_Level', dropna=False)['Satisfaction_Score']
+    .mean()
+    .sort_values(ascending=False)
+)
+
+top_level = avg_satisfaction.index[0]
+top_avg = float(avg_satisfaction.iloc[0])
+
+result = {
+    ""education_level_with_highest_average_satisfaction"": top_level,
+    ""average_satisfaction_score"": top_avg,
+    ""all_average_satisfaction_scores"": {k: float(v) for k, v in avg_satisfaction.to_dict().items()}
+}","The education level with the highest average satisfaction is \textbf{University}, with an average score of \textbf{2.16}.
+
+For comparison:
+- University: 2.16
+- School: 1.96
+- College: 1.66","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would make the comparison of average satisfaction scores across education levels clearer at a glance."", ""data_focus"": ""Average satisfaction score by education level: University, School, and College.""}",True,
+AI_Student_Life_Pakistan_2026.csv,Which cities have the highest average daily AI usage?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+avg_by_city = df.groupby(""City"", as_index=False)[""Daily_Usage_Hours""].mean()
+max_avg = avg_by_city[""Daily_Usage_Hours""].max()
+top_cities = avg_by_city[avg_by_city[""Daily_Usage_Hours""] == max_avg].copy()
+top_cities = top_cities.sort_values([""Daily_Usage_Hours"", ""City""], ascending=[False, True])
+
+result = {
+    ""highest_average_daily_ai_usage_hours"": float(max_avg),
+    ""cities"": top_cities[""City""].tolist(),
+    ""details"": [
+        {
+            ""City"": row[""City""],
+            ""Average_Daily_Usage_Hours"": float(row[""Daily_Usage_Hours""])
+        }
+        for _, row in top_cities.iterrows()
+    ]
+}","\textbf{Faisalabad} has the highest average daily AI usage, at about \textbf{3.35 hours per day}.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single top city with one average value, so a visualization would add little beyond the concise scalar answer."", ""data_focus"": ""Highest average daily AI usage for Faisalabad (3.35 hours/day).""}",False,
+AI_Student_Life_Pakistan_2026.csv,bottom 3?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+avg_by_city = (
+    df.groupby(""City"", as_index=False)[""Daily_Usage_Hours""]
+    .mean()
+    .sort_values(""Daily_Usage_Hours"", ascending=True)
+    .head(3)
+    .reset_index(drop=True)
+)
+
+result = {
+    ""bottom_3_lowest_average_daily_ai_usage_cities"": avg_by_city[""City""].tolist(),
+    ""details"": [
+        {
+            ""City"": row[""City""],
+            ""Average_Daily_Usage_Hours"": float(row[""Daily_Usage_Hours""])
+        }
+        for _, row in avg_by_city.iterrows()
+    ]
+}","The 3 cities with the lowest average daily AI usage are:
+
+1. \textbf{Multan} — 2.94 hours/day  
+2. Karachi — 2.97 hours/day  
+3. Islamabad — 3.01 hours/day","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would make the ranking and small differences among the three lowest-average cities easier to compare at a glance."", ""data_focus"": ""Average_Daily_Usage_Hours for Multan, Karachi, and Islamabad""}",True,
+AI_Student_Life_Pakistan_2026.csv,top 3?,"import pandas as pd
+
+df = pd.read_csv(csv_path)
+
+avg_by_city = (
+    df.groupby(""City"", as_index=False)[""Daily_Usage_Hours""]
+    .mean()
+    .sort_values(""Daily_Usage_Hours"", ascending=False)
+    .head(3)
+    .reset_index(drop=True)
+)
+
+result = {
+    ""top_3_highest_average_daily_ai_usage_cities"": avg_by_city[""City""].tolist(),
+    ""details"": [
+        {
+            ""City"": row[""City""],
+            ""Average_Daily_Usage_Hours"": float(row[""Daily_Usage_Hours""])
+        }
+        for _, row in avg_by_city.iterrows()
+    ]
+}","The top 3 cities by average daily AI usage are:
+
+1. \textbf{Faisalabad} — 3.35 hours/day  
+2. Lahore — 3.11 hours/day  
+3. Islamabad — 3.01 hours/day","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A bar chart would make the ranking and small differences in average daily AI usage among the top three cities easier to compare at a glance."", ""data_focus"": ""Average_Daily_Usage_Hours for Faisalabad, Lahore, and Islamabad""}",True,
+AI_Student_Life_Pakistan_2026.csv,Which cities have the highest average daily AI usage?,"import pandas as pd
+
+df = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project copy/datasets/AI_Student_Life_Pakistan_2026.csv')
+
+avg_by_city = (
+    df.groupby('City', as_index=False)['Daily_Usage_Hours']
+    .mean()
+    .sort_values('Daily_Usage_Hours', ascending=False)
+)
+
+max_avg = avg_by_city['Daily_Usage_Hours'].max()
+top_cities = avg_by_city[avg_by_city['Daily_Usage_Hours'] == max_avg].copy()
+top_cities['Daily_Usage_Hours'] = top_cities['Daily_Usage_Hours'].round(3)
+
+result = top_cities.to_dict(orient='records')","\textbf{Faisalabad} has the highest average daily AI usage, at **3.347 hours per day**.","{""needed"": false, ""chart_type"": ""none"", ""reason"": ""The result is a single top city with one scalar value, so a visualization would not add clarity unless the user specifically requested one."", ""data_focus"": ""Highest average daily AI usage by city (single result: Faisalabad, 3.347 hours/day)""}",False,
+housing.csv,Identify the top 5 most expensive geographic areas and explain the key factors contributing to their high prices.,"import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_path)
+
+group_cols = [""longitude"", ""latitude"", ""ocean_proximity""]
+
+area_stats = (
+    df.groupby(group_cols, dropna=False)
+    .agg(
+        avg_median_house_value=(""median_house_value"", ""mean""),
+        avg_median_income=(""median_income"", ""mean""),
+        avg_housing_median_age=(""housing_median_age"", ""mean""),
+        avg_total_rooms=(""total_rooms"", ""mean""),
+        avg_total_bedrooms=(""total_bedrooms"", ""mean""),
+        avg_population=(""population"", ""mean""),
+        avg_households=(""households"", ""mean""),
+        listings=(""median_house_value"", ""size""),
+    )
+    .reset_index()
+)
+
+top5 = area_stats.sort_values(
+    by=[""avg_median_house_value"", ""avg_median_income"", ""listings""],
+    ascending=[False, False, False]
+).head(5).copy()
+
+overall = {
+    ""median_house_value_mean"": float(df[""median_house_value""].mean()),
+    ""median_income_mean"": float(df[""median_income""].mean()),
+    ""housing_median_age_mean"": float(df[""housing_median_age""].mean()),
+    ""total_rooms_mean"": float(df[""total_rooms""].mean()),
+    ""total_bedrooms_mean"": float(df[""total_bedrooms""].mean(skipna=True)),
+    ""population_mean"": float(df[""population""].mean()),
+    ""households_mean"": float(df[""households""].mean()),
+}
+
+records = []
+for _, row in top5.iterrows():
+    factors = []
+    if row[""avg_median_income""] > overall[""median_income_mean""]:
+        factors.append(""higher-than-average median income"")
+    if row[""ocean_proximity""] in [""NEAR BAY"", ""NEAR OCEAN"", ""<1H OCEAN"", ""ISLAND""]:
+        factors.append(f""desirable coastal/ocean access ({row['ocean_proximity']})"")
+    if row[""avg_housing_median_age""] > overall[""housing_median_age_mean""]:
+        factors.append(""older established housing stock/neighborhoods"")
+    if row[""avg_total_rooms""] > overall[""total_rooms_mean""]:
+        factors.append(""larger homes based on average total rooms"")
+    if row[""avg_population""] < overall[""population_mean""]:
+        factors.append(""lower local population density pressure"")
+    if not factors:
+        factors.append(""premium pricing likely driven by location-specific demand"")
+
+    records.append({
+        ""longitude"": float(row[""longitude""]),
+        ""latitude"": float(row[""latitude""]),
+        ""ocean_proximity"": row[""ocean_proximity""],
+        ""average_median_house_value"": float(row[""avg_median_house_value""]),
+        ""average_median_income"": float(row[""avg_median_income""]),
+        ""average_housing_median_age"": float(row[""avg_housing_median_age""]),
+        ""average_total_rooms"": float(row[""avg_total_rooms""]),
+        ""average_total_bedrooms"": None if pd.isna(row[""avg_total_bedrooms""]) else float(row[""avg_total_bedrooms""]),
+        ""average_population"": float(row[""avg_population""]),
+        ""average_households"": float(row[""avg_households""]),
+        ""listings"": int(row[""listings""]),
+        ""key_factors"": factors
+    })
+
+result = {
+    ""top_5_most_expensive_geographic_areas"": records,
+    ""method"": ""Grouped by exact geographic coordinates (longitude, latitude) and ocean_proximity, then ranked by average median_house_value."",
+    ""overall_context"": overall
+}","The \textbf{top 5 most expensive geographic areas} all have an average median house value of **500,001**, well above the overall dataset average of about **206,944**.
+
+They are:
+
+1. **(-122.36, 37.56), NEAR OCEAN**
+2. **(-122.27, 37.43), NEAR OCEAN**
+3. **(-122.22, 37.44), NEAR OCEAN**
+4. **(-122.18, 37.46), NEAR BAY**
+5. **(-121.87, 37.46), <1H OCEAN**
+
+Key factors driving these high prices:
+- \textbf{Very high median incomes}: each area has an average median income of **15.0001**, far above the overall average of about **3.86**.
+- \textbf{Coastal or near-water location}: all five are either **NEAR OCEAN**, **NEAR BAY**, or **<1H OCEAN**, indicating strong location desirability.
+- \textbf{Older, established neighborhoods}: housing median age ranges from **32 to 43 years**, above the overall average of about **28.6**, which suggests mature, desirable communities.
+- \textbf{Lower density in several areas}: some locations have relatively small populations and households, pointing to more exclusive or less crowded neighborhoods.
+- \textbf{Larger homes in some cases}: a few of these areas also show notably high room counts, which likely supports higher home values.
+
+Overall, the main pattern is that these highest-priced areas combine \emph{wealthier residents, premium coastal access, and established neighborhoods}, with some also benefiting from larger homes and lower local density.","{""needed"": true, ""chart_type"": ""bar"", ""reason"": ""A chart would make it easier to compare the top 5 geographic areas and highlight the shared drivers of high prices, especially since the answer involves rankings and multiple contributing factors across locations."", ""data_focus"": ""Top 5 geographic areas ranked by average median house value, with comparison fields such as median income, ocean proximity, housing median age, and total rooms.""}",True,

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "result_id": "da17997a-d115-4c22-b5e1-67004f07088c",
+  "created_at": "2026-05-01T02:46:37.199683+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "what about only the top three factors?",
+  "resolved_question": "From the previously identified likely explanatory factors behind differences in academic performance among students with similar daily AI usage time, what are only the top three factors?",
+  "uses_prior_context": true,
+  "follow_up_context": "Previous result ranked likely explanatory factors as: City (19), Age (18), AI_Tool_Used (16), Education_Level (16), Purpose (16), Satisfaction_Level (13), Gender (11).",
+  "generated_code": "summary = None\n\nif isinstance(stored_result, dict):\n    summary = stored_result.get(\"likely_explanatory_factors_summary\")\n\nif not isinstance(summary, dict) or not summary:\n    result = \"Missing ranked explanatory factors summary needed to identify the top three factors.\"\nelse:\n    top_three = sorted(summary.items(), key=lambda x: (-x[1], x[0]))[:3]\n    result = [{\"factor\": factor, \"count\": int(count)} for factor, count in top_three]",
+  "execution_result": [
+    {
+      "factor": "City",
+      "count": 19
+    },
+    {
+      "factor": "Age",
+      "count": 18
+    },
+    {
+      "factor": "AI_Tool_Used",
+      "count": 16
+    }
+  ],
+  "evaluation": "PASS",
+  "final_answer": "The top three likely explanatory factors are:\n\n- City — 19\n- Age — 18\n- AI_Tool_Used — 16",
+  "visualization_decision": {
+    "needed": false,
+    "chart_type": "none",
+    "reason": "The answer is a simple top-three ranking with only three values, which is clear in text and does not require a visualization unless explicitly requested.",
+    "data_focus": "Top three explanatory factors and their counts: City (19), Age (18), AI_Tool_Used (16)."
+  },
+  "visualization_generated": false,
+  "visualization_result": "",
+  "visualization_html": "",
+  "visualization_error": ""
+}

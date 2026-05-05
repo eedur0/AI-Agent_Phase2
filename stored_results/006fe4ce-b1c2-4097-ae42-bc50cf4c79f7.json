@@ -1,0 +1,736 @@
+{
+  "schema_version": 1,
+  "result_id": "006fe4ce-b1c2-4097-ae42-bc50cf4c79f7",
+  "created_at": "2026-05-01T02:53:19.203163+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "Identify students with similar study time but significantly different academic performance. What factors might explain these differences?",
+  "resolved_question": "Identify students with similar study time but significantly different academic performance. What factors might explain these differences?",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project/datasets/AI_Student_Life_Pakistan_2026.csv')\n\nimpact_order = {\n    'Significant Decline': 0,\n    'Slight Decline': 1,\n    'No Change': 2,\n    'Improved': 3,\n    'Significantly Improved': 4\n}\n\ndf = df.copy()\ndf['Impact_Score'] = df['Impact_on_Grades'].map(impact_order)\n\n# Find students with similar study time (Daily_Usage_Hours within 0.3 hours)\n# but significantly different academic performance (impact score difference >= 2)\npairs = []\nn = len(df)\n\nfor i in range(n):\n    for j in range(i + 1, n):\n        usage_diff = abs(df.loc[i, 'Daily_Usage_Hours'] - df.loc[j, 'Daily_Usage_Hours'])\n        score_i = df.loc[i, 'Impact_Score']\n        score_j = df.loc[j, 'Impact_Score']\n        if pd.notna(score_i) and pd.notna(score_j):\n            perf_diff = abs(score_i - score_j)\n            if usage_diff <= 0.3 and perf_diff >= 2:\n                row_i = df.loc[i]\n                row_j = df.loc[j]\n                differing_factors = []\n                for col in ['Age', 'Gender', 'Education_Level', 'City', 'AI_Tool_Used', 'Purpose', 'Satisfaction_Level']:\n                    if row_i[col] != row_j[col]:\n                        differing_factors.append(col)\n                pairs.append({\n                    'Student_1_ID': int(row_i['Student_ID']),\n                    'Student_2_ID': int(row_j['Student_ID']),\n                    'Student_1_Daily_Usage_Hours': float(row_i['Daily_Usage_Hours']),\n                    'Student_2_Daily_Usage_Hours': float(row_j['Daily_Usage_Hours']),\n                    'Student_1_Impact_on_Grades': row_i['Impact_on_Grades'],\n                    'Student_2_Impact_on_Grades': row_j['Impact_on_Grades'],\n                    'Usage_Hours_Difference': float(round(usage_diff, 2)),\n                    'Performance_Gap': int(perf_diff),\n                    'Potential_Explaining_Factors': differing_factors,\n                    'Student_1_Profile': {\n                        'Age': int(row_i['Age']),\n                        'Gender': row_i['Gender'],\n                        'Education_Level': row_i['Education_Level'],\n                        'City': row_i['City'],\n                        'AI_Tool_Used': row_i['AI_Tool_Used'],\n                        'Purpose': row_i['Purpose'],\n                        'Satisfaction_Level': row_i['Satisfaction_Level']\n                    },\n                    'Student_2_Profile': {\n                        'Age': int(row_j['Age']),\n                        'Gender': row_j['Gender'],\n                        'Education_Level': row_j['Education_Level'],\n                        'City': row_j['City'],\n                        'AI_Tool_Used': row_j['AI_Tool_Used'],\n                        'Purpose': row_j['Purpose'],\n                        'Satisfaction_Level': row_j['Satisfaction_Level']\n                    }\n                })\n\npairs_df = pd.DataFrame(pairs)\n\n# Summarize most common differing factors across identified pairs\nfactor_counts = {}\nfor p in pairs:\n    for f in p['Potential_Explaining_Factors']:\n        factor_counts[f] = factor_counts.get(f, 0) + 1\n\nfactor_counts = dict(sorted(factor_counts.items(), key=lambda x: (-x[1], x[0])))\n\nresult = {\n    'students_with_similar_study_time_but_different_performance': pairs[:20],\n    'number_of_matching_pairs': int(len(pairs)),\n    'most_common_potential_explaining_factors': factor_counts,\n    'summary': (\n        'Students were matched when their Daily_Usage_Hours differed by 0.3 hours or less, '\n        'but their Impact_on_Grades differed by at least two levels. Potential explanations '\n        'are based on differences in Age, Gender, Education_Level, City, AI_Tool_Used, Purpose, '\n        'and Satisfaction_Level between matched students.'\n    )\n}",
+  "execution_result": {
+    "students_with_similar_study_time_but_different_performance": [
+      {
+        "Student_1_ID": 1,
+        "Student_2_ID": 13,
+        "Student_1_Daily_Usage_Hours": 0.8,
+        "Student_2_Daily_Usage_Hours": 0.7,
+        "Student_1_Impact_on_Grades": "Slight Decline",
+        "Student_2_Impact_on_Grades": "Improved",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "City",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 20,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "High"
+        }
+      },
+      {
+        "Student_1_ID": 1,
+        "Student_2_ID": 38,
+        "Student_1_Daily_Usage_Hours": 0.8,
+        "Student_2_Daily_Usage_Hours": 0.7,
+        "Student_1_Impact_on_Grades": "Slight Decline",
+        "Student_2_Impact_on_Grades": "Improved",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "City",
+          "Purpose"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 25,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Faisalabad",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 1,
+        "Student_2_ID": 52,
+        "Student_1_Daily_Usage_Hours": 0.8,
+        "Student_2_Daily_Usage_Hours": 0.7,
+        "Student_1_Impact_on_Grades": "Slight Decline",
+        "Student_2_Impact_on_Grades": "Improved",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Education_Level",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 16,
+          "Gender": "Female",
+          "Education_Level": "University",
+          "City": "Lahore",
+          "AI_Tool_Used": "Notion AI",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Medium"
+        }
+      },
+      {
+        "Student_1_ID": 1,
+        "Student_2_ID": 57,
+        "Student_1_Daily_Usage_Hours": 0.8,
+        "Student_2_Daily_Usage_Hours": 0.8,
+        "Student_1_Impact_on_Grades": "Slight Decline",
+        "Student_2_Impact_on_Grades": "Improved",
+        "Usage_Hours_Difference": 0.0,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "City",
+          "AI_Tool_Used"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 17,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Faisalabad",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 1,
+        "Student_2_ID": 81,
+        "Student_1_Daily_Usage_Hours": 0.8,
+        "Student_2_Daily_Usage_Hours": 0.6,
+        "Student_1_Impact_on_Grades": "Slight Decline",
+        "Student_2_Impact_on_Grades": "Improved",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Education_Level",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 25,
+          "Gender": "Female",
+          "Education_Level": "University",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Medium"
+        }
+      },
+      {
+        "Student_1_ID": 3,
+        "Student_2_ID": 7,
+        "Student_1_Daily_Usage_Hours": 1.8,
+        "Student_2_Daily_Usage_Hours": 2.0,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "City",
+          "AI_Tool_Used"
+        ],
+        "Student_1_Profile": {
+          "Age": 16,
+          "Gender": "Female",
+          "Education_Level": "College",
+          "City": "Multan",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 19,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Islamabad",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 3,
+        "Student_2_ID": 90,
+        "Student_1_Daily_Usage_Hours": 1.8,
+        "Student_2_Daily_Usage_Hours": 1.9,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Education_Level",
+          "City",
+          "AI_Tool_Used",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 16,
+          "Gender": "Female",
+          "Education_Level": "College",
+          "City": "Multan",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "University",
+          "City": "Islamabad",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Medium"
+        }
+      },
+      {
+        "Student_1_ID": 4,
+        "Student_2_ID": 8,
+        "Student_1_Daily_Usage_Hours": 4.2,
+        "Student_2_Daily_Usage_Hours": 4.2,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.0,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "AI_Tool_Used",
+          "Purpose"
+        ],
+        "Student_1_Profile": {
+          "Age": 22,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "Student_2_Profile": {
+          "Age": 25,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "High"
+        }
+      },
+      {
+        "Student_1_ID": 4,
+        "Student_2_ID": 32,
+        "Student_1_Daily_Usage_Hours": 4.2,
+        "Student_2_Daily_Usage_Hours": 4.0,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "City",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 22,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "Student_2_Profile": {
+          "Age": 16,
+          "Gender": "Female",
+          "Education_Level": "College",
+          "City": "Faisalabad",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 4,
+        "Student_2_ID": 37,
+        "Student_1_Daily_Usage_Hours": 4.2,
+        "Student_2_Daily_Usage_Hours": 4.3,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 22,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "Student_2_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "College",
+          "City": "Karachi",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 4,
+        "Student_2_ID": 53,
+        "Student_1_Daily_Usage_Hours": 4.2,
+        "Student_2_Daily_Usage_Hours": 4.3,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 22,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "Student_2_Profile": {
+          "Age": 23,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Homework",
+          "Satisfaction_Level": "Medium"
+        }
+      },
+      {
+        "Student_1_ID": 4,
+        "Student_2_ID": 75,
+        "Student_1_Daily_Usage_Hours": 4.2,
+        "Student_2_Daily_Usage_Hours": 4.0,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "City",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 22,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "Student_2_Profile": {
+          "Age": 16,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Lahore",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 5,
+        "Student_2_ID": 7,
+        "Student_1_Daily_Usage_Hours": 1.8,
+        "Student_2_Daily_Usage_Hours": 2.0,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "City",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 16,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Medium"
+        },
+        "Student_2_Profile": {
+          "Age": 19,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Islamabad",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 5,
+        "Student_2_ID": 90,
+        "Student_1_Daily_Usage_Hours": 1.8,
+        "Student_2_Daily_Usage_Hours": 1.9,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "City",
+          "AI_Tool_Used",
+          "Purpose"
+        ],
+        "Student_1_Profile": {
+          "Age": 16,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Medium"
+        },
+        "Student_2_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "University",
+          "City": "Islamabad",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Medium"
+        }
+      },
+      {
+        "Student_1_ID": 6,
+        "Student_2_ID": 8,
+        "Student_1_Daily_Usage_Hours": 4.1,
+        "Student_2_Daily_Usage_Hours": 4.2,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "City",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 25,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "High"
+        }
+      },
+      {
+        "Student_1_ID": 6,
+        "Student_2_ID": 32,
+        "Student_1_Daily_Usage_Hours": 4.1,
+        "Student_2_Daily_Usage_Hours": 4.0,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Education_Level",
+          "City",
+          "AI_Tool_Used",
+          "Purpose"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 16,
+          "Gender": "Female",
+          "Education_Level": "College",
+          "City": "Faisalabad",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 6,
+        "Student_2_ID": 37,
+        "Student_1_Daily_Usage_Hours": 4.1,
+        "Student_2_Daily_Usage_Hours": 4.3,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Education_Level",
+          "City",
+          "AI_Tool_Used",
+          "Purpose"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "College",
+          "City": "Karachi",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 6,
+        "Student_2_ID": 53,
+        "Student_1_Daily_Usage_Hours": 4.1,
+        "Student_2_Daily_Usage_Hours": 4.3,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.2,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "City",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 23,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Homework",
+          "Satisfaction_Level": "Medium"
+        }
+      },
+      {
+        "Student_1_ID": 6,
+        "Student_2_ID": 75,
+        "Student_1_Daily_Usage_Hours": 4.1,
+        "Student_2_Daily_Usage_Hours": 4.0,
+        "Student_1_Impact_on_Grades": "Improved",
+        "Student_2_Impact_on_Grades": "Slight Decline",
+        "Usage_Hours_Difference": 0.1,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "Gender",
+          "Education_Level",
+          "City",
+          "Purpose"
+        ],
+        "Student_1_Profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 16,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Lahore",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "Low"
+        }
+      },
+      {
+        "Student_1_ID": 7,
+        "Student_2_ID": 29,
+        "Student_1_Daily_Usage_Hours": 2.0,
+        "Student_2_Daily_Usage_Hours": 2.3,
+        "Student_1_Impact_on_Grades": "Slight Decline",
+        "Student_2_Impact_on_Grades": "Improved",
+        "Usage_Hours_Difference": 0.3,
+        "Performance_Gap": 2,
+        "Potential_Explaining_Factors": [
+          "Age",
+          "City",
+          "AI_Tool_Used",
+          "Purpose",
+          "Satisfaction_Level"
+        ],
+        "Student_1_Profile": {
+          "Age": 19,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Islamabad",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        },
+        "Student_2_Profile": {
+          "Age": 16,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Homework",
+          "Satisfaction_Level": "Medium"
+        }
+      }
+    ],
+    "number_of_matching_pairs": 137,
+    "most_common_potential_explaining_factors": {
+      "Age": 123,
+      "AI_Tool_Used": 115,
+      "City": 115,
+      "Purpose": 111,
+      "Education_Level": 91,
+      "Satisfaction_Level": 86,
+      "Gender": 72
+    },
+    "summary": "Students were matched when their Daily_Usage_Hours differed by 0.3 hours or less, but their Impact_on_Grades differed by at least two levels. Potential explanations are based on differences in Age, Gender, Education_Level, City, AI_Tool_Used, Purpose, and Satisfaction_Level between matched students."
+  },
+  "evaluation": "PASS",
+  "final_answer": "There are 137 student pairs with very similar study/AI usage time, <= 0.3 hours difference, but a large difference in academic impact, at least 2 performance levels apart.\n\nKey takeaway:\n- Similar study time alone does not explain performance differences.\n- The most likely explaining factors are:\n  - Age: 123 pairs\n  - AI tool used: 115 pairs\n  - City: 115 pairs\n  - Purpose of use: 111 pairs\n  - Education level: 91 pairs\n  - Satisfaction level: 86 pairs\n  - Gender: 72 pairs\n\nExamples:\n- Student 1 vs 57\n  - Both used about 0.8 hours/day\n  - Student 1: Slight Decline\n  - Student 57: Improved\n  - Likely differences: age, city, AI tool used\n\n- Student 4 vs 8\n  - Both used 4.2 hours/day\n  - Student 4: Improved\n  - Student 8: Slight Decline\n  - Likely differences: age, AI tool used, purpose\n\n- Student 3 vs 7\n  - 1.8 vs 2.0 hours/day\n  - Student 3: Improved\n  - Student 7: Slight Decline\n  - Likely differences: age, gender, education level, city, AI tool used\n\nWhat might explain the differences?\n- How the tool is used matters more than just time spent.\n- Students using AI for learning, homework, or research may get different outcomes than those using it mainly for coding or writing.\n- Different AI tools may support different tasks better.\n- Education level and age may affect how effectively students use the tools.\n- Satisfaction level may reflect whether the tool is actually helping the student.\n- City and gender may also capture differences in access, study environment, or learning habits.\n\nOverall, the strongest pattern is that performance differences among students with similar study time are most often associated with age, AI tool choice, city, and purpose of use.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "bar",
+    "reason": "The answer highlights ranked frequencies of potential explaining factors across many matched student pairs. A bar chart would make the comparison of which factors appear most often much clearer than text alone.",
+    "data_focus": "Most common potential explaining factors and their counts: Age, AI_Tool_Used, City, Purpose, Education_Level, Satisfaction_Level, and Gender."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Bar chart of the most common factors linked to performance differences among students with similar study time.",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"6b9f2f05-64cd-4829-8e53-99a8ca35d0bc\" class=\"plotly-graph-div\" style=\"height:720px; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"6b9f2f05-64cd-4829-8e53-99a8ca35d0bc\")) {                    Plotly.newPlot(                        \"6b9f2f05-64cd-4829-8e53-99a8ca35d0bc\",                        [{\"customdata\":[[\"Age\",123],[\"AI_Tool_Used\",115],[\"City\",115],[\"Purpose\",111],[\"Education_Level\",91],[\"Satisfaction_Level\",86],[\"Gender\",72]],\"hovertemplate\":\"\\u003cb\\u003e%{customdata[0]}\\u003c\\u002fb\\u003e\\u003cbr\\u003eMatched pairs: %{customdata[1]}\\u003cbr\\u003eAcross 137 matched student pairs with similar study time but different performance\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"legendgroup\":\"\",\"marker\":{\"color\":{\"dtype\":\"i1\",\"bdata\":\"e3Nzb1tWSA==\"},\"coloraxis\":\"coloraxis\",\"pattern\":{\"shape\":\"\"}},\"name\":\"\",\"orientation\":\"v\",\"showlegend\":false,\"text\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAADAXkAAAAAAAMBcQAAAAAAAwFxAAAAAAADAW0AAAAAAAMBWQAAAAAAAgFVAAAAAAAAAUkA=\"},\"textposition\":\"outside\",\"x\":[\"Age\",\"AI_Tool_Used\",\"City\",\"Purpose\",\"Education_Level\",\"Satisfaction_Level\",\"Gender\"],\"xaxis\":\"x\",\"y\":{\"dtype\":\"i1\",\"bdata\":\"e3Nzb1tWSA==\"},\"yaxis\":\"y\",\"type\":\"bar\",\"cliponaxis\":false}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Potential explaining factor\"},\"tickangle\":-20,\"automargin\":true},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Number of matched pairs\"},\"rangemode\":\"tozero\",\"automargin\":true},\"coloraxis\":{\"colorbar\":{\"title\":{\"text\":\"Number of matched pairs\"}},\"colorscale\":[[0.0,\"rgb(247,251,255)\"],[0.125,\"rgb(222,235,247)\"],[0.25,\"rgb(198,219,239)\"],[0.375,\"rgb(158,202,225)\"],[0.5,\"rgb(107,174,214)\"],[0.625,\"rgb(66,146,198)\"],[0.75,\"rgb(33,113,181)\"],[0.875,\"rgb(8,81,156)\"],[1.0,\"rgb(8,48,107)\"]],\"showscale\":false},\"legend\":{\"tracegroupgap\":0,\"title\":{\"text\":\"\"},\"orientation\":\"h\",\"yanchor\":\"top\",\"y\":-0.28,\"xanchor\":\"left\",\"x\":0},\"title\":{\"text\":\"Most Common Explaining Factors\\u003cbr\\u003e\\u003csup\\u003eAcross 137 matched\\u003cbr\\u003estudent pairs with similar study time but different\\u003cbr\\u003eperformance\\u003c\\u002fsup\\u003e\",\"x\":0.02,\"xanchor\":\"left\",\"y\":0.98,\"yanchor\":\"top\"},\"barmode\":\"relative\",\"margin\":{\"t\":150,\"b\":170,\"l\":95,\"r\":95},\"hoverlabel\":{\"font\":{\"size\":13},\"bgcolor\":\"white\"},\"height\":720,\"bargap\":0.35,\"bargroupgap\":0.15,\"font\":{\"size\":13},\"hovermode\":\"closest\"},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

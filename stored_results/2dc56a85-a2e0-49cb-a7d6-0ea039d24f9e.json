@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "result_id": "2dc56a85-a2e0-49cb-a7d6-0ea039d24f9e",
+  "created_at": "2026-05-01T02:36:07.995158+00:00",
+  "dataset_name": "housing.csv",
+  "question": "Find coastal areas where house prices are relatively low despite proximity to the ocean. What factors might explain this?",
+  "resolved_question": "Find coastal areas where house prices are relatively low despite proximity to the ocean. What factors might explain this?",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv(csv_path)\n\ncoastal = df[df[\"ocean_proximity\"].isin([\"NEAR OCEAN\", \"<1H OCEAN\", \"NEAR BAY\"])].copy()\n\ncoastal[\"rooms_per_household\"] = coastal[\"total_rooms\"] / coastal[\"households\"].replace(0, np.nan)\ncoastal[\"bedrooms_per_room\"] = coastal[\"total_bedrooms\"] / coastal[\"total_rooms\"].replace(0, np.nan)\ncoastal[\"population_per_household\"] = coastal[\"population\"] / coastal[\"households\"].replace(0, np.nan)\n\ncoastal_summary = coastal.groupby(\"ocean_proximity\").agg(\n    count=(\"median_house_value\", \"size\"),\n    median_house_value_mean=(\"median_house_value\", \"mean\"),\n    median_house_value_median=(\"median_house_value\", \"median\"),\n    median_income_mean=(\"median_income\", \"mean\"),\n    housing_median_age_mean=(\"housing_median_age\", \"mean\"),\n    population_mean=(\"population\", \"mean\"),\n    households_mean=(\"households\", \"mean\"),\n    rooms_per_household_mean=(\"rooms_per_household\", \"mean\"),\n    bedrooms_per_room_mean=(\"bedrooms_per_room\", \"mean\"),\n    population_per_household_mean=(\"population_per_household\", \"mean\"),\n).reset_index()\n\nlow_price_threshold = coastal[\"median_house_value\"].quantile(0.25)\nlow_price_coastal = coastal[coastal[\"median_house_value\"] <= low_price_threshold].copy()\n\nlocation_summary = (\n    low_price_coastal.groupby([\"ocean_proximity\", \"longitude\", \"latitude\"])\n    .agg(\n        count=(\"median_house_value\", \"size\"),\n        mean_house_value=(\"median_house_value\", \"mean\"),\n        median_income_mean=(\"median_income\", \"mean\"),\n        housing_median_age_mean=(\"housing_median_age\", \"mean\"),\n        population_mean=(\"population\", \"mean\"),\n        households_mean=(\"households\", \"mean\"),\n        rooms_per_household_mean=(\"rooms_per_household\", \"mean\"),\n        bedrooms_per_room_mean=(\"bedrooms_per_room\", \"mean\"),\n        population_per_household_mean=(\"population_per_household\", \"mean\"),\n    )\n    .reset_index()\n    .sort_values([\"mean_house_value\", \"count\"], ascending=[True, False])\n)\n\ntop_locations = location_summary.head(10).copy()\n\ncoastal_means = coastal[[\n    \"median_house_value\",\n    \"median_income\",\n    \"housing_median_age\",\n    \"population\",\n    \"households\",\n    \"rooms_per_household\",\n    \"bedrooms_per_room\",\n    \"population_per_household\"\n]].mean(numeric_only=True)\n\nlow_price_means = low_price_coastal[[\n    \"median_house_value\",\n    \"median_income\",\n    \"housing_median_age\",\n    \"population\",\n    \"households\",\n    \"rooms_per_household\",\n    \"bedrooms_per_room\",\n    \"population_per_household\"\n]].mean(numeric_only=True)\n\ncomparison = pd.DataFrame({\n    \"coastal_mean\": coastal_means,\n    \"low_price_coastal_mean\": low_price_means\n})\ncomparison[\"difference\"] = comparison[\"low_price_coastal_mean\"] - comparison[\"coastal_mean\"]\n\nfactors = []\nif comparison.loc[\"median_income\", \"difference\"] < 0:\n    factors.append(\"Lower median income than other coastal areas\")\nif comparison.loc[\"population_per_household\", \"difference\"] > 0:\n    factors.append(\"Higher population density / crowding per household\")\nif comparison.loc[\"bedrooms_per_room\", \"difference\"] > 0:\n    factors.append(\"Higher bedroom-to-room ratio, suggesting smaller or more crowded housing\")\nif comparison.loc[\"rooms_per_household\", \"difference\"] < 0:\n    factors.append(\"Fewer rooms per household on average\")\nif comparison.loc[\"housing_median_age\", \"difference\"] < 0:\n    factors.append(\"Slightly newer housing stock, which may reflect less established or less desirable neighborhoods\")\nelif comparison.loc[\"housing_median_age\", \"difference\"] > 0:\n    factors.append(\"Older housing stock in some cheaper coastal tracts\")\n\nresult = {\n    \"coastal_area_summary_by_proximity\": coastal_summary.round(3).to_dict(orient=\"records\"),\n    \"low_price_threshold_for_coastal_areas\": float(low_price_threshold),\n    \"example_low_price_coastal_locations\": top_locations.round(3).to_dict(orient=\"records\"),\n    \"factor_comparison_low_price_vs_all_coastal\": comparison.round(3).reset_index().rename(columns={\"index\": \"metric\"}).to_dict(orient=\"records\"),\n    \"possible_explanations\": factors\n}",
+  "execution_result": {
+    "coastal_area_summary_by_proximity": [
+      {
+        "ocean_proximity": "<1H OCEAN",
+        "count": 4380,
+        "median_house_value_mean": 239408.596,
+        "median_house_value_median": 213600.0,
+        "median_income_mean": 4.212,
+        "housing_median_age_mean": 29.353,
+        "population_mean": 1525.226,
+        "households_mean": 519.337,
+        "rooms_per_household_mean": 5.142,
+        "bedrooms_per_room_mean": 0.219,
+        "population_per_household_mean": 3.055
+      },
+      {
+        "ocean_proximity": "NEAR BAY",
+        "count": 1092,
+        "median_house_value_mean": 259012.81,
+        "median_house_value_median": 231900.0,
+        "median_income_mean": 4.17,
+        "housing_median_age_mean": 37.804,
+        "population_mean": 1245.801,
+        "households_mean": 494.274,
+        "rooms_per_household_mean": 5.234,
+        "bedrooms_per_room_mean": 0.214,
+        "population_per_household_mean": 2.617
+      },
+      {
+        "ocean_proximity": "NEAR OCEAN",
+        "count": 1316,
+        "median_house_value_mean": 254110.952,
+        "median_house_value_median": 235100.0,
+        "median_income_mean": 4.041,
+        "housing_median_age_mean": 29.174,
+        "population_mean": 1354.766,
+        "households_mean": 503.217,
+        "rooms_per_household_mean": 5.229,
+        "bedrooms_per_room_mean": 0.219,
+        "population_per_household_mean": 2.764
+      }
+    ],
+    "low_price_threshold_for_coastal_areas": 162500.0,
+    "example_low_price_coastal_locations": [
+      {
+        "ocean_proximity": "<1H OCEAN",
+        "longitude": -118.33,
+        "latitude": 34.15,
+        "count": 1,
+        "mean_house_value": 17500.0,
+        "median_income_mean": 2.367,
+        "housing_median_age_mean": 39.0,
+        "population_mean": 259.0,
+        "households_mean": 138.0,
+        "rooms_per_household_mean": 3.572,
+        "bedrooms_per_room_mean": 0.341,
+        "population_per_household_mean": 1.877
+      },
+      {
+        "ocean_proximity": "NEAR BAY",
+        "longitude": -122.32,
+        "latitude": 37.93,
+        "count": 1,
+        "mean_house_value": 22500.0,
+        "median_income_mean": 2.675,
+        "housing_median_age_mean": 33.0,
+        "population_mean": 216.0,
+        "households_mean": 63.0,
+        "rooms_per_household_mean": 4.698,
+        "bedrooms_per_room_mean": 0.247,
+        "population_per_household_mean": 3.429
+      },
+      {
+        "ocean_proximity": "NEAR OCEAN",
+        "longitude": -120.59,
+        "latitude": 34.7,
+        "count": 1,
+        "mean_house_value": 28300.0,
+        "median_income_mean": 2.738,
+        "housing_median_age_mean": 29.0,
+        "population_mean": 12427.0,
+        "households_mean": 2826.0,
+        "rooms_per_household_mean": 6.277,
+        "bedrooms_per_room_mean": 0.176,
+        "population_per_household_mean": 4.397
+      },
+      {
+        "ocean_proximity": "NEAR BAY",
+        "longitude": -122.41,
+        "latitude": 37.78,
+        "count": 1,
+        "mean_house_value": 32500.0,
+        "median_income_mean": 1.852,
+        "housing_median_age_mean": 52.0,
+        "population_mean": 1055.0,
+        "households_mean": 382.0,
+        "rooms_per_household_mean": 2.654,
+        "bedrooms_per_room_mean": 0.416,
+        "population_per_household_mean": 2.762
+      },
+      {
+        "ocean_proximity": "NEAR OCEAN",
+        "longitude": -119.85,
+        "latitude": 34.4,
+        "count": 1,
+        "mean_house_value": 37500.0,
+        "median_income_mean": 2.165,
+        "housing_median_age_mean": 14.0,
+        "population_mean": 5723.0,
+        "households_mean": 615.0,
+        "rooms_per_household_mean": 3.751,
+        "bedrooms_per_room_mean": 0.282,
+        "population_per_household_mean": 9.306
+      },
+      {
+        "ocean_proximity": "NEAR BAY",
+        "longitude": -122.37,
+        "latitude": 37.93,
+        "count": 1,
+        "mean_house_value": 37900.0,
+        "median_income_mean": 1.75,
+        "housing_median_age_mean": 45.0,
+        "population_mean": 1798.0,
+        "households_mean": 749.0,
+        "rooms_per_household_mean": 4.206,
+        "bedrooms_per_room_mean": 0.24,
+        "population_per_household_mean": 2.401
+      },
+      {
+        "ocean_proximity": "NEAR OCEAN",
+        "longitude": -120.69,
+        "latitude": 35.34,
+        "count": 1,
+        "mean_house_value": 42500.0,
+        "median_income_mean": 1.656,
+        "housing_median_age_mean": 16.0,
+        "population_mean": 542.0,
+        "households_mean": 32.0,
+        "rooms_per_household_mean": 5.125,
+        "bedrooms_per_room_mean": 0.183,
+        "population_per_household_mean": 16.938
+      },
+      {
+        "ocean_proximity": "<1H OCEAN",
+        "longitude": -116.99,
+        "latitude": 33.46,
+        "count": 1,
+        "mean_house_value": 43000.0,
+        "median_income_mean": 2.83,
+        "housing_median_age_mean": 13.0,
+        "population_mean": 846.0,
+        "households_mean": 270.0,
+        "rooms_per_household_mean": 5.978,
+        "bedrooms_per_room_mean": 0.254,
+        "population_per_household_mean": 3.133
+      },
+      {
+        "ocean_proximity": "<1H OCEAN",
+        "longitude": -122.01,
+        "latitude": 37.4,
+        "count": 1,
+        "mean_house_value": 47500.0,
+        "median_income_mean": 3.144,
+        "housing_median_age_mean": 24.0,
+        "population_mean": 441.0,
+        "households_mean": 282.0,
+        "rooms_per_household_mean": 4.599,
+        "bedrooms_per_room_mean": 0.229,
+        "population_per_household_mean": 1.564
+      },
+      {
+        "ocean_proximity": "<1H OCEAN",
+        "longitude": -123.72,
+        "latitude": 41.09,
+        "count": 1,
+        "mean_house_value": 50000.0,
+        "median_income_mean": 1.821,
+        "housing_median_age_mean": 19.0,
+        "population_mean": 1166.0,
+        "households_mean": 363.0,
+        "rooms_per_household_mean": 5.427,
+        "bedrooms_per_room_mean": 0.219,
+        "population_per_household_mean": 3.212
+      }
+    ],
+    "factor_comparison_low_price_vs_all_coastal": [
+      {
+        "metric": "median_house_value",
+        "coastal_mean": 245412.736,
+        "low_price_coastal_mean": 126601.969,
+        "difference": -118810.767
+      },
+      {
+        "metric": "median_income",
+        "coastal_mean": 4.172,
+        "low_price_coastal_mean": 2.658,
+        "difference": -1.514
+      },
+      {
+        "metric": "housing_median_age",
+        "coastal_mean": 30.678,
+        "low_price_coastal_mean": 32.157,
+        "difference": 1.479
+      },
+      {
+        "metric": "population",
+        "coastal_mean": 1447.227,
+        "low_price_coastal_mean": 1473.201,
+        "difference": 25.974
+      },
+      {
+        "metric": "households",
+        "coastal_mean": 512.18,
+        "low_price_coastal_mean": 454.808,
+        "difference": -57.372
+      },
+      {
+        "metric": "rooms_per_household",
+        "coastal_mean": 5.174,
+        "low_price_coastal_mean": 4.461,
+        "difference": -0.713
+      },
+      {
+        "metric": "bedrooms_per_room",
+        "coastal_mean": 0.218,
+        "low_price_coastal_mean": 0.248,
+        "difference": 0.03
+      },
+      {
+        "metric": "population_per_household",
+        "coastal_mean": 2.928,
+        "low_price_coastal_mean": 3.384,
+        "difference": 0.456
+      }
+    ],
+    "possible_explanations": [
+      "Lower median income than other coastal areas",
+      "Higher population density / crowding per household",
+      "Higher bedroom-to-room ratio, suggesting smaller or more crowded housing",
+      "Fewer rooms per household on average",
+      "Older housing stock in some cheaper coastal tracts"
+    ]
+  },
+  "evaluation": "PASS",
+  "final_answer": "Yes—there are coastal tracts with relatively low prices, using a low-price cutoff of about \\textbf{$162.5k} for coastal areas.\n\nOverall, coastal homes are usually expensive:\n- <1H OCEAN: median about $213.6k\n- NEAR BAY: median about $231.9k\n- NEAR OCEAN: median about $235.1k\n\nBut some coastal locations fall far below that, with examples as low as:\n- <1H OCEAN at (-118.33, 34.15): about $17.5k\n- NEAR BAY at (-122.32, 37.93): about $22.5k\n- NEAR OCEAN at (-120.59, 34.70): about $28.3k\n\nThe clearest pattern is that cheaper coastal areas tend to have weaker socioeconomic and housing-quality indicators than coastal areas overall:\n- \\textbf{Lower income}: median income averages 2.66 in low-price coastal tracts vs 4.17 overall\n- Smaller homes / less space: rooms per household are 4.46 vs 5.17\n- More crowding: population per household is 3.38 vs 2.93\n- Higher bedroom share: bedrooms per room are 0.248 vs 0.218, consistent with tighter housing layouts\n- Slightly older housing on average: 32.2 years vs 30.7\n\nSo the most likely explanation is that proximity to the ocean alone does not guarantee high prices. Coastal areas can still be relatively cheap when they have \\textbf{lower local incomes, more crowded housing, fewer/lower-quality rooms, and in some cases older housing stock}.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "scatter",
+    "reason": "The question asks to identify low-priced coastal areas and explain possible factors. A scatter plot makes it easier to see which coastal tracts are unusually cheap despite ocean proximity and whether lower income or greater crowding aligns with lower prices.",
+    "data_focus": "Coastal tracts only: plot median_house_value against median_income or population_per_household, colored by ocean_proximity, with low-price tracts below the $162.5k threshold highlighted."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Scatter plot of example low-priced coastal tracts showing house value versus median income, with point size indicating crowding and a threshold line highlighting unusually cheap coastal areas.",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"76d9d50c-54e5-463e-ad30-9daf3167fdab\" class=\"plotly-graph-div\" style=\"height:100%; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"76d9d50c-54e5-463e-ad30-9daf3167fdab\")) {                    Plotly.newPlot(                        \"76d9d50c-54e5-463e-ad30-9daf3167fdab\",                        [{\"customdata\":[[1.877,0.341,3.572,39.0,213600.0,4.212,-145000.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[3.133,0.254,5.978,13.0,213600.0,4.212,-119500.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[1.564,0.229,4.599,24.0,213600.0,4.212,-115000.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[3.212,0.219,5.427,19.0,213600.0,4.212,-112500.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"]],\"hovertemplate\":\"\\u003cb\\u003e%{hovertext}\\u003c\\u002fb\\u003e\\u003cbr\\u003e\\u003cbr\\u003eOcean Proximity=\\u003c1H OCEAN\\u003cbr\\u003eMedian Income=%{x:.3f}\\u003cbr\\u003eMean House Value ($)=%{y:,.0f}\\u003cbr\\u003ePopulation per Household=%{customdata[0]:.3f}\\u003cbr\\u003ebedrooms_per_room_mean=%{customdata[1]:.3f}\\u003cbr\\u003erooms_per_household_mean=%{customdata[2]:.3f}\\u003cbr\\u003ehousing_median_age_mean=%{customdata[3]:.1f}\\u003cbr\\u003egroup_median_house_value=%{customdata[4]:,.0f}\\u003cbr\\u003egroup_mean_income=%{customdata[5]:.3f}\\u003cbr\\u003eprice_gap_to_threshold=%{customdata[6]:,.0f}\\u003cbr\\u003ehover_note=%{customdata[7]}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"hovertext\":[\"\\u003c1H OCEAN | (34.15, -118.33)\",\"\\u003c1H OCEAN | (33.46, -116.99)\",\"\\u003c1H OCEAN | (37.4, -122.01)\",\"\\u003c1H OCEAN | (41.09, -123.72)\"],\"legendgroup\":\"\\u003c1H OCEAN\",\"marker\":{\"color\":\"#636efa\",\"size\":{\"dtype\":\"f8\",\"bdata\":\"1XjpJjEI\\u002fj+q8dJNYhAJQKAaL90kBvk\\u002fGQRWDi2yCUA=\"},\"sizemode\":\"area\",\"sizeref\":0.042344999999999994,\"symbol\":\"circle\",\"line\":{\"color\":\"white\",\"width\":1},\"opacity\":0.85},\"mode\":\"markers\",\"name\":\"\\u003c1H OCEAN\",\"orientation\":\"v\",\"showlegend\":true,\"x\":{\"dtype\":\"f8\",\"bdata\":\"Vg4tsp3vAkCkcD0K16MGQPT91HjpJglAiUFg5dAi\\u002fT8=\"},\"xaxis\":\"x\",\"y\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAAAX0UAAAAAAAP\\u002fkQAAAAACAMedAAAAAAABq6EA=\"},\"yaxis\":\"y\",\"type\":\"scatter\"},{\"customdata\":[[3.429,0.247,4.698,33.0,231900.0,4.17,-140000.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[2.762,0.416,2.654,52.0,231900.0,4.17,-130000.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[2.401,0.24,4.206,45.0,231900.0,4.17,-124600.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"]],\"hovertemplate\":\"\\u003cb\\u003e%{hovertext}\\u003c\\u002fb\\u003e\\u003cbr\\u003e\\u003cbr\\u003eOcean Proximity=NEAR BAY\\u003cbr\\u003eMedian Income=%{x:.3f}\\u003cbr\\u003eMean House Value ($)=%{y:,.0f}\\u003cbr\\u003ePopulation per Household=%{customdata[0]:.3f}\\u003cbr\\u003ebedrooms_per_room_mean=%{customdata[1]:.3f}\\u003cbr\\u003erooms_per_household_mean=%{customdata[2]:.3f}\\u003cbr\\u003ehousing_median_age_mean=%{customdata[3]:.1f}\\u003cbr\\u003egroup_median_house_value=%{customdata[4]:,.0f}\\u003cbr\\u003egroup_mean_income=%{customdata[5]:.3f}\\u003cbr\\u003eprice_gap_to_threshold=%{customdata[6]:,.0f}\\u003cbr\\u003ehover_note=%{customdata[7]}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"hovertext\":[\"NEAR BAY | (37.93, -122.32)\",\"NEAR BAY | (37.78, -122.41)\",\"NEAR BAY | (37.93, -122.37)\"],\"legendgroup\":\"NEAR BAY\",\"marker\":{\"color\":\"#EF553B\",\"size\":{\"dtype\":\"f8\",\"bdata\":\"O99PjZduC0B\\u002farx0kxgGQGiR7Xw\\u002fNQNA\"},\"sizemode\":\"area\",\"sizeref\":0.042344999999999994,\"symbol\":\"circle\",\"line\":{\"color\":\"white\",\"width\":1},\"opacity\":0.85},\"mode\":\"markers\",\"name\":\"NEAR BAY\",\"orientation\":\"v\",\"showlegend\":true,\"x\":{\"dtype\":\"f8\",\"bdata\":\"ZmZmZmZmBUBvEoPAyqH9PwAAAAAAAPw\\u002f\"},\"xaxis\":\"x\",\"y\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAAD51UAAAAAAAL3fQAAAAACAgeJA\"},\"yaxis\":\"y\",\"type\":\"scatter\"},{\"customdata\":[[4.397,0.176,6.277,29.0,235100.0,4.041,-134200.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[9.306,0.282,3.751,14.0,235100.0,4.041,-125000.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"],[16.938,0.183,5.125,16.0,235100.0,4.041,-120000.0,\"median_income: -1.514 vs all coastal; housing_median_age: +1.479 vs all coastal; rooms_per_household: -0.713 vs all coastal; bedrooms_per_room: +0.030 vs all coastal\"]],\"hovertemplate\":\"\\u003cb\\u003e%{hovertext}\\u003c\\u002fb\\u003e\\u003cbr\\u003e\\u003cbr\\u003eOcean Proximity=NEAR OCEAN\\u003cbr\\u003eMedian Income=%{x:.3f}\\u003cbr\\u003eMean House Value ($)=%{y:,.0f}\\u003cbr\\u003ePopulation per Household=%{customdata[0]:.3f}\\u003cbr\\u003ebedrooms_per_room_mean=%{customdata[1]:.3f}\\u003cbr\\u003erooms_per_household_mean=%{customdata[2]:.3f}\\u003cbr\\u003ehousing_median_age_mean=%{customdata[3]:.1f}\\u003cbr\\u003egroup_median_house_value=%{customdata[4]:,.0f}\\u003cbr\\u003egroup_mean_income=%{customdata[5]:.3f}\\u003cbr\\u003eprice_gap_to_threshold=%{customdata[6]:,.0f}\\u003cbr\\u003ehover_note=%{customdata[7]}\\u003cextra\\u003e\\u003c\\u002fextra\\u003e\",\"hovertext\":[\"NEAR OCEAN | (34.7, -120.59)\",\"NEAR OCEAN | (34.4, -119.85)\",\"NEAR OCEAN | (35.34, -120.69)\"],\"legendgroup\":\"NEAR OCEAN\",\"marker\":{\"color\":\"#00cc96\",\"size\":{\"dtype\":\"f8\",\"bdata\":\"SgwCK4eWEUDpJjEIrJwiQOOlm8Qg8DBA\"},\"sizemode\":\"area\",\"sizeref\":0.042344999999999994,\"symbol\":\"circle\",\"line\":{\"color\":\"white\",\"width\":1},\"opacity\":0.85},\"mode\":\"markers\",\"name\":\"NEAR OCEAN\",\"orientation\":\"v\",\"showlegend\":true,\"x\":{\"dtype\":\"f8\",\"bdata\":\"gZVDi2znBUBSuB6F61EBQOXQItv5fvo\\u002f\"},\"xaxis\":\"x\",\"y\":{\"dtype\":\"f8\",\"bdata\":\"AAAAAACj20AAAAAAgE\\u002fiQAAAAACAwORA\"},\"yaxis\":\"y\",\"type\":\"scatter\"}],                        {\"template\":{\"data\":{\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"white\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"white\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"#C8D4E3\",\"linecolor\":\"#C8D4E3\",\"minorgridcolor\":\"#C8D4E3\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"#C8D4E3\",\"linecolor\":\"#C8D4E3\",\"minorgridcolor\":\"#C8D4E3\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"choropleth\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"type\":\"choropleth\"}],\"contourcarpet\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"type\":\"contourcarpet\"}],\"contour\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"contour\"}],\"heatmap\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"heatmap\"}],\"histogram2dcontour\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"histogram2dcontour\"}],\"histogram2d\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"histogram2d\"}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"mesh3d\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"type\":\"mesh3d\"}],\"parcoords\":[{\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"parcoords\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}],\"scatter3d\":[{\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatter3d\"}],\"scattercarpet\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattercarpet\"}],\"scattergeo\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattergeo\"}],\"scattergl\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattergl\"}],\"scattermapbox\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattermapbox\"}],\"scattermap\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scattermap\"}],\"scatterpolargl\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatterpolargl\"}],\"scatterpolar\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatterpolar\"}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"scatterternary\":[{\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"type\":\"scatterternary\"}],\"surface\":[{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"type\":\"surface\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}]},\"layout\":{\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"autotypenumbers\":\"strict\",\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]],\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]},\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"geo\":{\"bgcolor\":\"white\",\"lakecolor\":\"white\",\"landcolor\":\"white\",\"showlakes\":true,\"showland\":true,\"subunitcolor\":\"#C8D4E3\"},\"hoverlabel\":{\"align\":\"left\"},\"hovermode\":\"closest\",\"mapbox\":{\"style\":\"light\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"white\",\"polar\":{\"angularaxis\":{\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\"},\"bgcolor\":\"white\",\"radialaxis\":{\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\"}},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"white\",\"gridcolor\":\"#DFE8F3\",\"gridwidth\":2,\"linecolor\":\"#EBF0F8\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"#EBF0F8\"},\"yaxis\":{\"backgroundcolor\":\"white\",\"gridcolor\":\"#DFE8F3\",\"gridwidth\":2,\"linecolor\":\"#EBF0F8\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"#EBF0F8\"},\"zaxis\":{\"backgroundcolor\":\"white\",\"gridcolor\":\"#DFE8F3\",\"gridwidth\":2,\"linecolor\":\"#EBF0F8\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"#EBF0F8\"}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"ternary\":{\"aaxis\":{\"gridcolor\":\"#DFE8F3\",\"linecolor\":\"#A2B1C6\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"#DFE8F3\",\"linecolor\":\"#A2B1C6\",\"ticks\":\"\"},\"bgcolor\":\"white\",\"caxis\":{\"gridcolor\":\"#DFE8F3\",\"linecolor\":\"#A2B1C6\",\"ticks\":\"\"}},\"title\":{\"x\":0.05},\"xaxis\":{\"automargin\":true,\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"#EBF0F8\",\"zerolinewidth\":2},\"yaxis\":{\"automargin\":true,\"gridcolor\":\"#EBF0F8\",\"linecolor\":\"#EBF0F8\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"#EBF0F8\",\"zerolinewidth\":2}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Median Income\"}},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Mean House Value ($)\"}},\"legend\":{\"title\":{\"text\":\"Coastal Category\"},\"tracegroupgap\":0,\"itemsizing\":\"constant\"},\"title\":{\"text\":\"Low-Priced Coastal Areas: House Value vs Median Income\"},\"shapes\":[{\"line\":{\"color\":\"crimson\",\"dash\":\"dash\"},\"type\":\"line\",\"x0\":0,\"x1\":1,\"xref\":\"x domain\",\"y0\":162500.0,\"y1\":162500.0,\"yref\":\"y\"}],\"annotations\":[{\"showarrow\":false,\"text\":\"Possible factors: Lower median income than other coastal areas • Higher population density \\u002f crowding per household • Higher bedroom-to-room ratio, suggesting smaller or more crowded housing • Fewer rooms per household on average\",\"x\":0.01,\"xanchor\":\"left\",\"xref\":\"paper\",\"y\":1.12,\"yanchor\":\"bottom\",\"yref\":\"paper\",\"font\":{\"size\":11,\"color\":\"#444\"},\"align\":\"left\"}],\"hoverlabel\":{\"font\":{\"size\":11},\"bgcolor\":\"white\"},\"margin\":{\"l\":60,\"r\":30,\"t\":80,\"b\":60}},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

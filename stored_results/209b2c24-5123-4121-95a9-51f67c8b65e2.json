@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "result_id": "209b2c24-5123-4121-95a9-51f67c8b65e2",
+  "created_at": "2026-05-01T02:44:21.499808+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "Identify students with similar study time but significantly different academic performance. What factors might explain these differences?",
+  "resolved_question": "Identify students with similar study time but significantly different academic performance. What factors might explain these differences?",
+  "uses_prior_context": false,
+  "follow_up_context": "",
+  "generated_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('/Users/ed/Documents/School/S26/ECE157C/ECE157C_272C_HW2/project/datasets/AI_Student_Life_Pakistan_2026.csv')\n\nimpact_order = {\n    'Significant Decline': 0,\n    'Declined': 1,\n    'Slight Decline': 2,\n    'No Change': 3,\n    'Improved': 4,\n    'Significantly Improved': 5\n}\n\nsatisfaction_order = {\n    'Low': 0,\n    'Medium': 1,\n    'High': 2\n}\n\ndf = df.copy()\ndf['Impact_Score'] = df['Impact_on_Grades'].map(impact_order)\ndf['Satisfaction_Score'] = df['Satisfaction_Level'].map(satisfaction_order)\n\n# Find students with very similar study/use time (same rounded to 0.1 hour)\npairs = []\nfor usage, group in df.groupby('Daily_Usage_Hours'):\n    if len(group) < 2:\n        continue\n    g = group.sort_values('Impact_Score')\n    rows = g.to_dict('records')\n    for i in range(len(rows)):\n        for j in range(i + 1, len(rows)):\n            diff = abs(rows[j]['Impact_Score'] - rows[i]['Impact_Score'])\n            if diff >= 2:\n                pairs.append({\n                    'Daily_Usage_Hours': float(usage),\n                    'Student_1_ID': int(rows[i]['Student_ID']),\n                    'Student_1_Impact': rows[i]['Impact_on_Grades'],\n                    'Student_1_Satisfaction': rows[i]['Satisfaction_Level'],\n                    'Student_1_Purpose': rows[i]['Purpose'],\n                    'Student_1_Education_Level': rows[i]['Education_Level'],\n                    'Student_1_AI_Tool': rows[i]['AI_Tool_Used'],\n                    'Student_1_City': rows[i]['City'],\n                    'Student_2_ID': int(rows[j]['Student_ID']),\n                    'Student_2_Impact': rows[j]['Impact_on_Grades'],\n                    'Student_2_Satisfaction': rows[j]['Satisfaction_Level'],\n                    'Student_2_Purpose': rows[j]['Purpose'],\n                    'Student_2_Education_Level': rows[j]['Education_Level'],\n                    'Student_2_AI_Tool': rows[j]['AI_Tool_Used'],\n                    'Student_2_City': rows[j]['City'],\n                    'Impact_Score_Difference': int(diff)\n                })\n\npairs_df = pd.DataFrame(pairs)\n\nif pairs_df.empty:\n    result = {\n        'similar_students': [],\n        'explanation': 'No student pairs were found with identical Daily_Usage_Hours and significantly different Impact_on_Grades based on the chosen ordinal mapping.'\n    }\nelse:\n    # Keep the most contrasting examples\n    pairs_df = pairs_df.sort_values(\n        ['Impact_Score_Difference', 'Daily_Usage_Hours'],\n        ascending=[False, True]\n    ).head(10)\n\n    factor_summaries = []\n    for _, row in pairs_df.iterrows():\n        differing_factors = []\n        for factor, c1, c2 in [\n            ('Purpose', 'Student_1_Purpose', 'Student_2_Purpose'),\n            ('Education_Level', 'Student_1_Education_Level', 'Student_2_Education_Level'),\n            ('AI_Tool_Used', 'Student_1_AI_Tool', 'Student_2_AI_Tool'),\n            ('Satisfaction_Level', 'Student_1_Satisfaction', 'Student_2_Satisfaction'),\n            ('City', 'Student_1_City', 'Student_2_City')\n        ]:\n            if row[c1] != row[c2]:\n                differing_factors.append({\n                    'factor': factor,\n                    'student_1': row[c1],\n                    'student_2': row[c2]\n                })\n        factor_summaries.append({\n            'Daily_Usage_Hours': float(row['Daily_Usage_Hours']),\n            'student_pair': [int(row['Student_1_ID']), int(row['Student_2_ID'])],\n            'performance_comparison': {\n                'student_1': row['Student_1_Impact'],\n                'student_2': row['Student_2_Impact']\n            },\n            'possible_explanatory_factors': differing_factors\n        })\n\n    # Aggregate which factors differ most often among contrasting pairs\n    factor_counts = {}\n    for item in factor_summaries:\n        for f in item['possible_explanatory_factors']:\n            factor_counts[f['factor']] = factor_counts.get(f['factor'], 0) + 1\n\n    result = {\n        'similar_students': factor_summaries,\n        'most_common_possible_factors': factor_counts,\n        'explanation': (\n            'Students were matched by identical Daily_Usage_Hours and flagged when their '\n            'Impact_on_Grades differed substantially using an ordinal score. The most plausible '\n            'explanations in this dataset are differences in Purpose of AI use, Satisfaction_Level, '\n            'Education_Level, AI_Tool_Used, and sometimes City. In particular, students using AI '\n            'for different purposes (such as learning vs. writing/coding/research) can show very '\n            'different grade outcomes even with the same usage time.'\n        )\n    }",
+  "execution_result": {
+    "similar_students": [
+      {
+        "Daily_Usage_Hours": 0.7,
+        "student_pair": [
+          30,
+          13
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Writing",
+            "student_2": "Coding"
+          },
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "Grammarly",
+            "student_2": "Gemini"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Medium",
+            "student_2": "High"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 0.7,
+        "student_pair": [
+          30,
+          38
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Writing",
+            "student_2": "Coding"
+          },
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "Grammarly",
+            "student_2": "ChatGPT"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Medium",
+            "student_2": "Low"
+          },
+          {
+            "factor": "City",
+            "student_1": "Multan",
+            "student_2": "Faisalabad"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 0.7,
+        "student_pair": [
+          30,
+          52
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Writing",
+            "student_2": "Learning"
+          },
+          {
+            "factor": "Education_Level",
+            "student_1": "School",
+            "student_2": "University"
+          },
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "Grammarly",
+            "student_2": "Notion AI"
+          },
+          {
+            "factor": "City",
+            "student_1": "Multan",
+            "student_2": "Lahore"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 0.8,
+        "student_pair": [
+          1,
+          57
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "ChatGPT",
+            "student_2": "Gemini"
+          },
+          {
+            "factor": "City",
+            "student_1": "Lahore",
+            "student_2": "Faisalabad"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 1.9,
+        "student_pair": [
+          90,
+          51
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "Copilot",
+            "student_2": "Notion AI"
+          },
+          {
+            "factor": "City",
+            "student_1": "Islamabad",
+            "student_2": "Faisalabad"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 2.0,
+        "student_pair": [
+          7,
+          76
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Research",
+            "student_2": "Learning"
+          },
+          {
+            "factor": "Education_Level",
+            "student_1": "School",
+            "student_2": "University"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Low",
+            "student_2": "Medium"
+          },
+          {
+            "factor": "City",
+            "student_1": "Islamabad",
+            "student_2": "Multan"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 2.7,
+        "student_pair": [
+          22,
+          100
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Coding",
+            "student_2": "Learning"
+          },
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "Grammarly",
+            "student_2": "Gemini"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Medium",
+            "student_2": "High"
+          },
+          {
+            "factor": "City",
+            "student_1": "Islamabad",
+            "student_2": "Multan"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 3.0,
+        "student_pair": [
+          71,
+          60
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Learning",
+            "student_2": "Research"
+          },
+          {
+            "factor": "Education_Level",
+            "student_1": "School",
+            "student_2": "College"
+          },
+          {
+            "factor": "AI_Tool_Used",
+            "student_1": "Grammarly",
+            "student_2": "Notion AI"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Low",
+            "student_2": "Medium"
+          },
+          {
+            "factor": "City",
+            "student_1": "Islamabad",
+            "student_2": "Lahore"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 3.0,
+        "student_pair": [
+          71,
+          92
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Education_Level",
+            "student_1": "School",
+            "student_2": "University"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Low",
+            "student_2": "Medium"
+          },
+          {
+            "factor": "City",
+            "student_1": "Islamabad",
+            "student_2": "Lahore"
+          }
+        ]
+      },
+      {
+        "Daily_Usage_Hours": 3.2,
+        "student_pair": [
+          9,
+          31
+        ],
+        "performance_comparison": {
+          "student_1": "Slight Decline",
+          "student_2": "Improved"
+        },
+        "possible_explanatory_factors": [
+          {
+            "factor": "Purpose",
+            "student_1": "Homework",
+            "student_2": "Research"
+          },
+          {
+            "factor": "Satisfaction_Level",
+            "student_1": "Medium",
+            "student_2": "High"
+          }
+        ]
+      }
+    ],
+    "most_common_possible_factors": {
+      "Purpose": 7,
+      "AI_Tool_Used": 7,
+      "Satisfaction_Level": 7,
+      "City": 8,
+      "Education_Level": 4
+    },
+    "explanation": "Students were matched by identical Daily_Usage_Hours and flagged when their Impact_on_Grades differed substantially using an ordinal score. The most plausible explanations in this dataset are differences in Purpose of AI use, Satisfaction_Level, Education_Level, AI_Tool_Used, and sometimes City. In particular, students using AI for different purposes (such as learning vs. writing/coding/research) can show very different grade outcomes even with the same usage time."
+  },
+  "evaluation": "PASS",
+  "final_answer": "Several students had the same daily study/AI usage time but very different academic outcomes, typically one showing slight decline and the other improved.\n\nExamples:\n- 0.7 hours/day:\n  - Students 30 and 13: slight decline vs improved\n  - Students 30 and 38: slight decline vs improved\n  - Students 30 and 52: slight decline vs improved\n- 0.8 hours/day:\n  - Students 1 and 57: slight decline vs improved\n- 1.9 hours/day:\n  - Students 90 and 51: slight decline vs improved\n- 2.0 hours/day:\n  - Students 7 and 76: slight decline vs improved\n- 2.7 hours/day:\n  - Students 22 and 100: slight decline vs improved\n- 3.0 hours/day:\n  - Students 71 and 60: slight decline vs improved\n  - Students 71 and 92: slight decline vs improved\n- 3.2 hours/day:\n  - Students 9 and 31: slight decline vs improved\n\nMost likely factors behind the differences:\n- City: appeared in 8 comparisons\n- Purpose of AI use: 7 comparisons\n- AI tool used: 7 comparisons\n- Satisfaction level: 7 comparisons\n- Education level: 4 comparisons\n\nWhat this suggests:\n- Study time alone does not explain performance differences.\n- How students use AI seems important:\n  - Learning-focused use was often linked with better outcomes than writing, homework, or some coding/research use.\n- The specific AI tool may matter:\n  - Students using different tools like Gemini, Notion AI, ChatGPT, Grammarly, or Copilot showed different outcomes at the same usage time.\n- Satisfaction level may reflect effectiveness:\n  - Students reporting higher satisfaction were often the ones who improved.\n- Education level may shape results:\n  - University or college students sometimes outperformed school students despite equal usage time.\n- City may capture outside influences:\n  - Differences in school quality, resources, environment, or support systems could help explain outcome gaps.\n\nOverall, students with similar study time can perform very differently because the quality, purpose, and context of their AI-assisted study appear to matter more than time spent alone.",
+  "visualization_decision": {
+    "needed": true,
+    "chart_type": "heatmap",
+    "reason": "The answer compares multiple student pairs and highlights how often several factors differ across those pairs. A heatmap would make the repeated explanatory factors and their frequency across matched students much easier to scan than text alone.",
+    "data_focus": "Student pairs on one axis and possible explanatory factors (City, Purpose, AI_Tool_Used, Satisfaction_Level, Education_Level) on the other, with cells indicating which factors differ for each pair or a summarized factor-frequency heatmap."
+  },
+  "visualization_generated": true,
+  "visualization_result": "Heatmap of matched student pairs shows which factors differ between students with similar study time but different performance. Most recurring differences are City (8), AI Tool Used (7), Purpose (7), Satisfaction Level (7), Education Level (4).",
+  "visualization_html": "<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>\n        <script charset=\"utf-8\" src=\"https://cdn.plot.ly/plotly-3.5.0.min.js\" integrity=\"sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=\" crossorigin=\"anonymous\"></script>                <div id=\"570bab93-2dcc-473a-a2cd-3e7ee0b48517\" class=\"plotly-graph-div\" style=\"height:720px; width:100%;\"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById(\"570bab93-2dcc-473a-a2cd-3e7ee0b48517\")) {                    Plotly.newPlot(                        \"570bab93-2dcc-473a-a2cd-3e7ee0b48517\",                        [{\"colorbar\":{\"len\":0.7,\"ticktext\":[\"No\",\"Yes\"],\"tickvals\":[0,1],\"title\":{\"text\":\"Factor differs\"}},\"colorscale\":[[0.0,\"#f2f0f7\"],[0.4999,\"#f2f0f7\"],[0.5,\"#6a51a3\"],[1.0,\"#54278f\"]],\"hoverinfo\":\"text\",\"text\":[[\"Pair: 30 vs 13\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 30: Writing\\u003cbr\\u003eStudent 13: Coding\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 13\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 30: Grammarly\\u003cbr\\u003eStudent 13: Gemini\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 13\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 30: Medium\\u003cbr\\u003eStudent 13: High\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 13\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eDifferent: No\",\"Pair: 30 vs 13\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eDifferent: No\"],[\"Pair: 30 vs 38\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 30: Writing\\u003cbr\\u003eStudent 38: Coding\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 38\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 30: Grammarly\\u003cbr\\u003eStudent 38: ChatGPT\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 38\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 30: Medium\\u003cbr\\u003eStudent 38: Low\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 38\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 30: Multan\\u003cbr\\u003eStudent 38: Faisalabad\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 38\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eDifferent: No\"],[\"Pair: 30 vs 52\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 30: Writing\\u003cbr\\u003eStudent 52: Learning\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 52\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 30: Grammarly\\u003cbr\\u003eStudent 52: Notion AI\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 52\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eDifferent: No\",\"Pair: 30 vs 52\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 30: Multan\\u003cbr\\u003eStudent 52: Lahore\\u003cbr\\u003eDifferent: Yes\",\"Pair: 30 vs 52\\u003cbr\\u003eStudy time: 0.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eStudent 30: School\\u003cbr\\u003eStudent 52: University\\u003cbr\\u003eDifferent: Yes\"],[\"Pair: 1 vs 57\\u003cbr\\u003eStudy time: 0.8 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eDifferent: No\",\"Pair: 1 vs 57\\u003cbr\\u003eStudy time: 0.8 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 1: ChatGPT\\u003cbr\\u003eStudent 57: Gemini\\u003cbr\\u003eDifferent: Yes\",\"Pair: 1 vs 57\\u003cbr\\u003eStudy time: 0.8 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eDifferent: No\",\"Pair: 1 vs 57\\u003cbr\\u003eStudy time: 0.8 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 1: Lahore\\u003cbr\\u003eStudent 57: Faisalabad\\u003cbr\\u003eDifferent: Yes\",\"Pair: 1 vs 57\\u003cbr\\u003eStudy time: 0.8 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eDifferent: No\"],[\"Pair: 90 vs 51\\u003cbr\\u003eStudy time: 1.9 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eDifferent: No\",\"Pair: 90 vs 51\\u003cbr\\u003eStudy time: 1.9 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 90: Copilot\\u003cbr\\u003eStudent 51: Notion AI\\u003cbr\\u003eDifferent: Yes\",\"Pair: 90 vs 51\\u003cbr\\u003eStudy time: 1.9 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eDifferent: No\",\"Pair: 90 vs 51\\u003cbr\\u003eStudy time: 1.9 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 90: Islamabad\\u003cbr\\u003eStudent 51: Faisalabad\\u003cbr\\u003eDifferent: Yes\",\"Pair: 90 vs 51\\u003cbr\\u003eStudy time: 1.9 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eDifferent: No\"],[\"Pair: 7 vs 76\\u003cbr\\u003eStudy time: 2.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 7: Research\\u003cbr\\u003eStudent 76: Learning\\u003cbr\\u003eDifferent: Yes\",\"Pair: 7 vs 76\\u003cbr\\u003eStudy time: 2.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eDifferent: No\",\"Pair: 7 vs 76\\u003cbr\\u003eStudy time: 2.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 7: Low\\u003cbr\\u003eStudent 76: Medium\\u003cbr\\u003eDifferent: Yes\",\"Pair: 7 vs 76\\u003cbr\\u003eStudy time: 2.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 7: Islamabad\\u003cbr\\u003eStudent 76: Multan\\u003cbr\\u003eDifferent: Yes\",\"Pair: 7 vs 76\\u003cbr\\u003eStudy time: 2.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eStudent 7: School\\u003cbr\\u003eStudent 76: University\\u003cbr\\u003eDifferent: Yes\"],[\"Pair: 22 vs 100\\u003cbr\\u003eStudy time: 2.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 22: Coding\\u003cbr\\u003eStudent 100: Learning\\u003cbr\\u003eDifferent: Yes\",\"Pair: 22 vs 100\\u003cbr\\u003eStudy time: 2.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 22: Grammarly\\u003cbr\\u003eStudent 100: Gemini\\u003cbr\\u003eDifferent: Yes\",\"Pair: 22 vs 100\\u003cbr\\u003eStudy time: 2.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 22: Medium\\u003cbr\\u003eStudent 100: High\\u003cbr\\u003eDifferent: Yes\",\"Pair: 22 vs 100\\u003cbr\\u003eStudy time: 2.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 22: Islamabad\\u003cbr\\u003eStudent 100: Multan\\u003cbr\\u003eDifferent: Yes\",\"Pair: 22 vs 100\\u003cbr\\u003eStudy time: 2.7 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eDifferent: No\"],[\"Pair: 71 vs 60\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 71: Learning\\u003cbr\\u003eStudent 60: Research\\u003cbr\\u003eDifferent: Yes\",\"Pair: 71 vs 60\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eStudent 71: Grammarly\\u003cbr\\u003eStudent 60: Notion AI\\u003cbr\\u003eDifferent: Yes\",\"Pair: 71 vs 60\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 71: Low\\u003cbr\\u003eStudent 60: Medium\\u003cbr\\u003eDifferent: Yes\",\"Pair: 71 vs 60\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 71: Islamabad\\u003cbr\\u003eStudent 60: Lahore\\u003cbr\\u003eDifferent: Yes\",\"Pair: 71 vs 60\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eStudent 71: School\\u003cbr\\u003eStudent 60: College\\u003cbr\\u003eDifferent: Yes\"],[\"Pair: 71 vs 92\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eDifferent: No\",\"Pair: 71 vs 92\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eDifferent: No\",\"Pair: 71 vs 92\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 71: Low\\u003cbr\\u003eStudent 92: Medium\\u003cbr\\u003eDifferent: Yes\",\"Pair: 71 vs 92\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eStudent 71: Islamabad\\u003cbr\\u003eStudent 92: Lahore\\u003cbr\\u003eDifferent: Yes\",\"Pair: 71 vs 92\\u003cbr\\u003eStudy time: 3.0 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eStudent 71: School\\u003cbr\\u003eStudent 92: University\\u003cbr\\u003eDifferent: Yes\"],[\"Pair: 9 vs 31\\u003cbr\\u003eStudy time: 3.2 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Purpose\\u003cbr\\u003eStudent 9: Homework\\u003cbr\\u003eStudent 31: Research\\u003cbr\\u003eDifferent: Yes\",\"Pair: 9 vs 31\\u003cbr\\u003eStudy time: 3.2 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: AI_Tool_Used\\u003cbr\\u003eDifferent: No\",\"Pair: 9 vs 31\\u003cbr\\u003eStudy time: 3.2 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Satisfaction_Level\\u003cbr\\u003eStudent 9: Medium\\u003cbr\\u003eStudent 31: High\\u003cbr\\u003eDifferent: Yes\",\"Pair: 9 vs 31\\u003cbr\\u003eStudy time: 3.2 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: City\\u003cbr\\u003eDifferent: No\",\"Pair: 9 vs 31\\u003cbr\\u003eStudy time: 3.2 hours\\u002fday\\u003cbr\\u003ePerformance: Slight Decline vs Improved\\u003cbr\\u003eFactor: Education_Level\\u003cbr\\u003eDifferent: No\"]],\"x\":[\"Purpose\",\"AI Tool Used\",\"Satisfaction Level\",\"City\",\"Education Level\"],\"xgap\":6,\"y\":[\"30 vs 13 (0.7h)\",\"30 vs 38 (0.7h)\",\"30 vs 52 (0.7h)\",\"1 vs 57 (0.8h)\",\"90 vs 51 (1.9h)\",\"7 vs 76 (2.0h)\",\"22 vs 100 (2.7h)\",\"71 vs 60 (3.0h)\",\"71 vs 92 (3.0h)\",\"9 vs 31 (3.2h)\"],\"ygap\":6,\"z\":{\"dtype\":\"i1\",\"bdata\":\"AQEBAAABAQEBAAEBAAEBAAEAAQAAAQABAAEAAQEBAQEBAQABAQEBAQAAAQEBAQABAAA=\",\"shape\":\"10, 5\"},\"zmax\":1,\"zmin\":0,\"type\":\"heatmap\"}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermap\":[{\"type\":\"scattermap\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"margin\":{\"t\":150,\"b\":170,\"l\":95,\"r\":95},\"title\":{\"text\":\"Differences Across Matched Students\",\"x\":0.02,\"xanchor\":\"left\",\"y\":0.98,\"yanchor\":\"top\"},\"xaxis\":{\"title\":{\"text\":\"Possible explanatory factors\"},\"tickangle\":-20,\"side\":\"bottom\",\"automargin\":true},\"yaxis\":{\"title\":{\"text\":\"Student pairs with similar study time\"},\"autorange\":\"reversed\",\"automargin\":true},\"height\":720,\"legend\":{\"title\":{\"text\":\"\"},\"orientation\":\"h\",\"yanchor\":\"top\",\"y\":-0.28,\"xanchor\":\"left\",\"x\":0},\"font\":{\"size\":13},\"hovermode\":\"closest\",\"bargap\":0.35,\"bargroupgap\":0.15},                        {\"responsive\": true}                    )                };            </script>        </div>",
+  "visualization_error": ""
+}

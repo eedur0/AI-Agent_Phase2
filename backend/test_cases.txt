@@ -1,0 +1,20 @@
+# Format: <csv_path> | <question>
+
+housing.csv | What is the average median house value across the dataset?
+housing.csv | Which ocean proximity category has the highest average median house value?
+housing.csv | What are the minimum, maximum, and median values of median house value?
+housing.csv | How does median income vary across different ocean proximity categories?
+housing.csv | Which geographic areas (based on latitude and longitude ranges) have the highest average house prices?
+housing.csv | How does population density (defined as population per household) relate to median house value?
+housing.csv | Identify the top 5 most expensive geographic areas and explain the key factors contributing to their high prices.
+housing.csv | Find coastal areas where house prices are relatively low despite proximity to the ocean. What factors might explain this?
+housing.csv | Identify areas with similar median income levels but significantly different median house value. What factors might explain these differences?
+AI_Student_Life_Pakistan_2026.csv | What is the average daily study time across all students?
+AI_Student_Life_Pakistan_2026.csv | Which education level has the highest average satisfaction level?
+AI_Student_Life_Pakistan_2026.csv | What are the minimum, maximum, and median values of usage hours among students?
+AI_Student_Life_Pakistan_2026.csv | How does average AI usage vary across different education levels?
+AI_Student_Life_Pakistan_2026.csv | Which cities have the highest average daily AI usage?
+AI_Student_Life_Pakistan_2026.csv | How does the purpose of AI usage relate to its impact on grades?
+AI_Student_Life_Pakistan_2026.csv | Identify the top 5 student groups with the highest academic performance and explain the key factors contributing to their success.
+AI_Student_Life_Pakistan_2026.csv | Find students who have high stress levels despite relatively low study hours. What factors might explain this?
+AI_Student_Life_Pakistan_2026.csv | Identify students with similar study time but significantly different academic performance. What factors might explain these differences?

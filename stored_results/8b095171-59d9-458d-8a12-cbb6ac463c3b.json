@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "result_id": "8b095171-59d9-458d-8a12-cbb6ac463c3b",
+  "created_at": "2026-05-01T03:46:00.035838+00:00",
+  "dataset_name": "AI_Student_Life_Pakistan_2026.csv",
+  "question": "how about only the top 5?",
+  "resolved_question": "From the previously identified matched student pairs with similar study time but significantly different academic performance, show only the top 5 results.",
+  "uses_prior_context": true,
+  "follow_up_context": "Previous result found 184 matched student pairs where Daily_Usage_Hours were within 0.2 hours but Impact_on_Grades differed substantially, and included example pairs plus ranked explanatory factors.",
+  "generated_code": "examples = stored_result.get(\"examples\") if isinstance(stored_result, dict) else None\n\nif not examples or not isinstance(examples, list):\n    result = \"The stored result does not include the matched pair examples needed to show the top 5 results.\"\nelse:\n    top5 = examples[:5]\n    result = {\n        \"matched_pairs_count\": stored_result.get(\"matched_pairs_count\"),\n        \"top_5_results\": top5\n    }",
+  "execution_result": {
+    "matched_pairs_count": 184,
+    "top_5_results": [
+      {
+        "student_1_id": 1,
+        "student_2_id": 57,
+        "student_1_usage_hours": 0.8,
+        "student_2_usage_hours": 0.8,
+        "student_1_impact": "Slight Decline",
+        "student_2_impact": "Improved",
+        "possible_explanatory_factors": [
+          "AI_Tool_Used",
+          "City",
+          "Age"
+        ],
+        "student_1_profile": {
+          "Age": 15,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Lahore",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "student_2_profile": {
+          "Age": 17,
+          "Gender": "Female",
+          "Education_Level": "School",
+          "City": "Faisalabad",
+          "AI_Tool_Used": "Gemini",
+          "Purpose": "Writing",
+          "Satisfaction_Level": "Low"
+        },
+        "impact_gap": 3
+      },
+      {
+        "student_1_id": 4,
+        "student_2_id": 8,
+        "student_1_usage_hours": 4.2,
+        "student_2_usage_hours": 4.2,
+        "student_1_impact": "Improved",
+        "student_2_impact": "Slight Decline",
+        "possible_explanatory_factors": [
+          "Purpose",
+          "AI_Tool_Used",
+          "Age"
+        ],
+        "student_1_profile": {
+          "Age": 22,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "ChatGPT",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "student_2_profile": {
+          "Age": 25,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "High"
+        },
+        "impact_gap": 3
+      },
+      {
+        "student_1_id": 7,
+        "student_2_id": 76,
+        "student_1_usage_hours": 2.0,
+        "student_2_usage_hours": 2.0,
+        "student_1_impact": "Slight Decline",
+        "student_2_impact": "Improved",
+        "possible_explanatory_factors": [
+          "Purpose",
+          "Satisfaction_Level",
+          "Education_Level",
+          "City",
+          "Age"
+        ],
+        "student_1_profile": {
+          "Age": 19,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Islamabad",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Research",
+          "Satisfaction_Level": "Low"
+        },
+        "student_2_profile": {
+          "Age": 23,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Multan",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "Medium"
+        },
+        "impact_gap": 3
+      },
+      {
+        "student_1_id": 8,
+        "student_2_id": 68,
+        "student_1_usage_hours": 4.2,
+        "student_2_usage_hours": 4.2,
+        "student_1_impact": "Slight Decline",
+        "student_2_impact": "Improved",
+        "possible_explanatory_factors": [
+          "Purpose",
+          "Satisfaction_Level",
+          "Education_Level",
+          "City",
+          "Age"
+        ],
+        "student_1_profile": {
+          "Age": 25,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "High"
+        },
+        "student_2_profile": {
+          "Age": 19,
+          "Gender": "Male",
+          "Education_Level": "School",
+          "City": "Multan",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Homework",
+          "Satisfaction_Level": "Medium"
+        },
+        "impact_gap": 3
+      },
+      {
+        "student_1_id": 8,
+        "student_2_id": 69,
+        "student_1_usage_hours": 4.2,
+        "student_2_usage_hours": 4.2,
+        "student_1_impact": "Slight Decline",
+        "student_2_impact": "Improved",
+        "possible_explanatory_factors": [
+          "Purpose",
+          "AI_Tool_Used",
+          "City",
+          "Age"
+        ],
+        "student_1_profile": {
+          "Age": 25,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Karachi",
+          "AI_Tool_Used": "Grammarly",
+          "Purpose": "Coding",
+          "Satisfaction_Level": "High"
+        },
+        "student_2_profile": {
+          "Age": 18,
+          "Gender": "Male",
+          "Education_Level": "University",
+          "City": "Lahore",
+          "AI_Tool_Used": "Copilot",
+          "Purpose": "Learning",
+          "Satisfaction_Level": "High"
+        },
+        "impact_gap": 3
+      }
+    ]
+  },
+  "evaluation": "PASS",
+  "final_answer": "Here are the top 5 matched student pairs with similar daily usage time but notably different grade impact:\n\n1. Student 1 vs Student 57\n- Usage time: both 0.8 hours\n- Grade impact: Slight Decline vs Improved\n- Impact gap: 3\n- Likely differentiators: AI tool used, city, age\n\n2. Student 4 vs Student 8\n- Usage time: both 4.2 hours\n- Grade impact: Improved vs Slight Decline\n- Impact gap: 3\n- Likely differentiators: purpose, AI tool used, age\n\n3. Student 7 vs Student 76\n- Usage time: both 2.0 hours\n- Grade impact: Slight Decline vs Improved\n- Impact gap: 3\n- Likely differentiators: purpose, satisfaction level, education level, city, age\n\n4. Student 8 vs Student 68\n- Usage time: both 4.2 hours\n- Grade impact: Slight Decline vs Improved\n- Impact gap: 3\n- Likely differentiators: purpose, satisfaction level, education level, city, age\n\n5. Student 8 vs Student 69\n- Usage time: both 4.2 hours\n- Grade impact: Slight Decline vs Improved\n- Impact gap: 3\n- Likely differentiators: purpose, AI tool used, city, age\n\nOverall, all top 5 pairs had identical usage hours and the same impact gap of 3, suggesting that factors like purpose of use, AI tool used, satisfaction level, education level, city, and age may help explain the performance differences.",
+  "visualization_decision": {
+    "needed": false,
+    "chart_type": "none",
+    "reason": "The user asked to show only the top 5 matched pairs, which is best conveyed as a short ranked list. A visualization would add little value here because all five pairs share the same impact gap and matched usage time within each pair, so there is limited variation to compare visually.",
+    "data_focus": "top 5 matched student pairs with usage time, grade impact, impact gap, and explanatory factors"
+  },
+  "visualization_generated": false,
+  "visualization_result": "",
+  "visualization_html": "",
+  "visualization_error": ""
+}
