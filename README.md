@@ -1,5 +1,7 @@
 # CSV Analysis Agent
 
+> NOTE: This project is still under development. Future improvements are planned for accuracy, usability, and visualization support.
+
 This project is a chatbot-style CSV analysis agent. A user selects a dataset, asks natural-language questions, receives a final answer, and may receive a Plotly visualization. The system also supports follow-up questions that operate on prior stored results instead of recomputing from the original dataset.
 
 ## Project Structure
